@@ -26,8 +26,9 @@ OBJECTS := $(addprefix $(BUILD)/,$(PRODUCTION:.c=.o)) $(BUILD)/main.o $(BUILD)/p
 .DEFAULT_GOAL := all
 $(BUILD):
 	$(MKDIR_BUILD)
-$(BUILD)/%.o: $(SRC)/%.c | $(BUILD)
+$(BUILD)/%.o: $(SRC)/%.c pc_side.h | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -w -c -o $@ "$<"
+$(BUILD)/Interrupts.o: ../Source\ Files/vectors.h
 $(BUILD)/%.o: %.c | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -Wall -Wextra -c -o $@ $<
 $(EXE): $(OBJECTS)

@@ -1,6 +1,13 @@
 #ifndef VECTORS_H
 #define VECTORS_H
 
+/* The interrupt vector table belongs at the HCS12's fixed 0xFF80 address and
+ * references the target CRT's _start routine. The PC host calls the handlers
+ * directly from its simulated RTI/CAN hardware, so emitting this table would
+ * create an invalid dependency on an embedded startup symbol (and collides
+ * with MinGW's executable startup namespace). */
+#ifndef PC_SIDE
+
 #pragma nonpaged_function _start
 //
 // A Reset vector for this program.
@@ -78,4 +85,5 @@ void (*interrupt_vectors[])(void) =
 };
 
 #pragma end_abs_address
+#endif /* !PC_SIDE */
 #endif
