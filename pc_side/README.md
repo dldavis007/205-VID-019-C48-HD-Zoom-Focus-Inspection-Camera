@@ -19,4 +19,4 @@ Open the repository root in VS Code, select **Terminal > Run Task**, then use:
 The default UDP receive/send ports are `20020` and `20100`. Override them with
 `camera_host.exe 20020 20100`. The wire format is a little-endian 16-bit CAN
 ID, one length byte, then zero to eight data bytes. Absolute EEPROM reads are
-skipped and the host camera address is seeded to `0x1111`.
+skipped and the host camera address is seeded to `0x4444`.

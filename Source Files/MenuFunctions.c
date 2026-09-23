@@ -1158,6 +1158,11 @@ void Load_Serial_Num ( void )
 
 void Save_Serial_Num ( void )
 {
+#ifdef PC_SIDE
+    /* The target serial number lives at absolute EEPROM address 0x0B10.
+     * There is no equivalent mapped address in a desktop process. */
+    return;
+#else
     char *EEpromPtr;
     
 	//This will prevent the serial number from being saved if there is already a number in EEPROM (first digit in EEPROM is numeric)
@@ -1169,12 +1174,21 @@ void Save_Serial_Num ( void )
 	
     EEpromPtr = &SerialNum.str_value[0];
 
- 	EEWrite ( 7, EEpromPtr, (int *)0xB10 );
+	EEWrite ( 7, EEpromPtr, (int *)0xB10 );
+#endif
 }
 
 
 void Save_Variables ( void )
 {
+#ifdef PC_SIDE
+    /* Preserve the observable result of a successful save without walking
+     * or writing the HCS12 EEPROM address range. This also prevents the
+     * camera-list update from repeating on every menu exit. */
+    strncpy(&EE_CamTag[0], &CamTag.str_value[0], STR_VALUE_LEN - 1);
+    EE_CamTag[STR_VALUE_LEN - 1] = '\0';
+    return;
+#else
 	int offset = 0, EE_offset = 0;
 	char *cptr;
     char tempstr[130];
@@ -1204,7 +1218,8 @@ void Save_Variables ( void )
 	EEWrite (128, tempstr, (int *)(EE_Begin + EE_offset));
 	EEWrite (1, Null_Ptr, (int *)(EE_Begin + EE_offset + 128));    //Put a Null in the first location of the next 128 byte block
     strncpy(&EE_CamTag[0], &CamTag.str_value[0], STR_VALUE_LEN - 1); 
-}                                                                                        
+#endif
+}
 
 
 int RestoreDefaults ( void )

@@ -86,12 +86,29 @@ def main():
         require(not any(i == 0x500 for i, _ in host.frames), "idle address-report traffic")
         host.send(0x421, [0, 0]); host.alive(.15)
         require(not any(i == 0x500 for i, _ in host.frames), "zero address selected camera")
-        host.send(0x421, [0x11, 0x11]); host.alive(.2)
+        host.send(0x421, [0x44, 0x44]); host.alive(.2)
         host.send(0x521, [2, 0, 0, 0, 0])
         host.wait_id(0x500, count=2)
         reports = [data for i, data in host.frames if i == 0x500]
-        require(reports[0][:3] == b"\x18\x11\x11", "address report did not contain 0x1111")
+        require(reports[0][:3] == b"\x18\x44\x44", "address report did not contain 0x4444")
         host.alive(.2); print("PASS startup, address guard, CANopen RPDOs, and address report")
+
+        # Open the unit menu, navigate through Defaults and then exit the root
+        # menu. Menu exit sets StoreFlag and exercises the EEPROM-save path
+        # that previously dereferenced target address 0x0B10 on Windows.
+        def key(value):
+            host.send(0x180, [value, 0, 0]); host.alive(.65)
+            host.send(0x180, [0, 0, 0]); host.alive(.65)
+        host.send(0x521, [8, 0x44, 0x44, 0, 0]); host.alive(1.0)
+        for _ in range(4): key(1)
+        key(4)  # enter Defaults
+        key(4)  # exit Defaults
+        key(1)  # move to EXIT on the root menu
+        key(4)  # exit the unit menu and run the save path
+        host.alive(.5)
+        require("#ifdef PC_SIDE" in source and "address 0x0B10" in source,
+                "PC EEPROM-save guard is missing")
+        print("PASS unit-menu navigation and PC EEPROM-save regression")
     except (OSError, subprocess.CalledProcessError, Failure) as exc:
         print("FAIL: %s" % exc); return 1
     finally:

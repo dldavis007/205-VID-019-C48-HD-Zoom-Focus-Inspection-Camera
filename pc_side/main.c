@@ -23,7 +23,7 @@ static void stop_host(int sig) { (void)sig; running = 0; }
 
 int main(int argc, char **argv)
 {
-    unsigned short receive_port = 20022, send_port = 20100;
+    unsigned short receive_port = 20020, send_port = 20100;
     unsigned long loops = 0;
     if (argc > 1) receive_port = (unsigned short)atoi(argv[1]);
     if (argc > 2) send_port = (unsigned short)atoi(argv[2]);
