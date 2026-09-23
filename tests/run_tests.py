@@ -82,7 +82,7 @@ def main():
             require(re.search(r"signed\s+char\s+%s\s*;" % name, source), "%s is not signed" % name)
         print("PASS 26 Unity tests and signed menu flags")
         host = Host(); host.wait_id(0x721); host.wait_id(0x200); host.alive(.15)
-        require("camera address seeded to 0x1111" in host.log(), "camera seed missing")
+        require("camera address seeded to 0x4444" in host.log(), "camera seed missing")
         require(not any(i == 0x500 for i, _ in host.frames), "idle address-report traffic")
         host.send(0x421, [0, 0]); host.alive(.15)
         require(not any(i == 0x500 for i, _ in host.frames), "zero address selected camera")
