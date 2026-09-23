@@ -105,8 +105,23 @@ void pc_side_sleep_ms(unsigned ms)
 static void can_log(const char *direction, const CAN_MSG *msg)
 {
     int i;
-    printf("[%10lu ms] [CAN %s] 0x%03X [%u]", milliseconds(), direction,
+#ifdef _WIN32
+    SYSTEMTIME now;
+    GetLocalTime(&now);
+    printf("[%02u:%02u:%02u.%03u] [CAN %s] 0x%03X [%u]",
+           (unsigned)now.wHour, (unsigned)now.wMinute,
+           (unsigned)now.wSecond, (unsigned)now.wMilliseconds,
+           direction, (unsigned)msg->ID, (unsigned)msg->LEN);
+#else
+    struct timespec now;
+    struct tm local;
+    clock_gettime(CLOCK_REALTIME, &now);
+    localtime_r(&now.tv_sec, &local);
+    printf("[%02d:%02d:%02d.%03ld] [CAN %s] 0x%03X [%u]",
+           local.tm_hour, local.tm_min, local.tm_sec,
+           now.tv_nsec / 1000000L, direction,
            (unsigned)msg->ID, (unsigned)msg->LEN);
+#endif
     for (i = 0; i < msg->LEN && i < 8; i++) printf(" %02X", (unsigned)msg->BUF[i]);
     printf("\n");
 }
