@@ -1,0 +1,43 @@
+Revision 1.00	 VJB                Made from the "Default Firmware Program Rev 1.02".
+	
+	Improvements on the Camera Interface:
+	- Changed the code to use the new/improved menu format.
+	- When Find Cameras occurs it will now use the Camera Tag to populate the Menu.
+	- Added Hardware COP functionality.
+    - Added a setting to turn the microphone on or off.
+	
+ 	MAX33011 Fault changes  
+	- Changes to Camera.c file to accommodate changes to the mco stack
+		- (Controller.c) moved InitCANopen() function from before INTR_ON() to after INTR_ON();
+		- (Controller.c) changed InitCANopen() function to call Reset_Max33011() before calling MCOUSER_ResetCommunication(), deleted while 
+	- Changes to MCO Stack to increase robustness and clear faults in the MAX330112
+		- (mco.c) added #include "mc9s12a128.h", int No2WireCnt = 0; and extern char Gen_Flags;
+		- (mco.c) added code to check for Gen_Flags_No2Wire flag in MCO_ProcessStack() to reinitialize the mco stack
+		- (mco.c) added Reset_Max33011() function, this redirects the CAN, then reads and clears the fault from the MAX33011
+		- (mco.h) added Reset_Max33011() protype
+		- (mcohw.c) added Timer1 to while loops when waiting for CAN status with calls to COP (4 places)
+		- (user.c) added INTR_ON() to MCOUSER_ResetCommunication() function
+		- (user.c) changed MCOUSER_FatalError() function to call InitCANopen() instead of error_state() (got rid of 2Wio.c)
+		
+		- removed 2Wio.c and 2Wio.h and all references to include the header file
+		
+
+Revision 1.01	PCK		Made from version 1.00
+
+	Changes in scope and functionality required the following:
+	- Addition of F1 menu functions using the CamMenu.c\.h
+	- Add serial interface to new camera module
+	- Added FIFO to manage serial messages to the camera module
+	- Chang to settings menu to accommodate IO redesign (audio and video relay changes)
+	- Changes made to the serial driver to change end character to FF
+	
+	Changes made to fix issues
+	- Fixed menu scrambling issue when connected through the WRX/WTX
+	- Fixed issue with camera tag not updating in camera list
+	- Renamed INACTIVE LIGHT to LED ALWAYS ON to reduce confusion
+	- Renamed LIGHT BRIGHTNESS to LED LIGHTS to match what is already in the field
+	
+	
+TODO list
+	
+	Manage camera module sleep mode through serial bus to reduce power draw on C48 bus

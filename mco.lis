@@ -1,0 +1,2945 @@
+                        .module mco.c
+                        .area text
+ 0000                   .dbfile ..\REV1~1.01\mco.c
+                        .area data
+ 0000                   .dbfile ..\REV1~1.01\mco.c
+ 0000           _No2WireCnt::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 0000              .word 0
+                        .area data
+ 0002                   .dbfile ..\REV1~1.01\mco.c
+ 0002                   .dbfile C:\Dev\REV1~1.01\mco.c
+ 0002                   .dbsym e No2WireCnt _No2WireCnt I
+ 0002           _gTPDONr::
+ 0002                   .blkb 1
+                        .area idata
+ 0002 08                .byte 8
+                        .area data
+ 0003                   .dbfile C:\Dev\REV1~1.01\mco.c
+ 0003                   .dbsym e gTPDONr _gTPDONr c
+                        .area extcode(paged)
+ 0000                   .dbfile C:\Dev\REV1~1.01\mco.c
+ 0000                   .dbfunc e MCO_Search_OD _MCO_Search_OD fc
+ 0000           ;           i_hi -> 0,SP
+ 0000           ;           i_lo -> 1,SP
+ 0000           ;              r -> 2,SP
+ 0000           ;              i -> 4,SP
+ 0000           ;             hi -> 5,SP
+ 0000           ;             lo -> 6,SP
+ 0000           ;              p -> 7,SP
+ 0000           ;       subindex -> 15,SP
+ 0000           ;          index -> 9,SP
+ 0000           $_MCO_Search_OD::
+ 0000 3B                pshd
+ 0001 1B97              leas -9,S
+ 0003                   .dbline -1
+ 0003                   .dbline 104
+ 0003           ; /**************************************************************************
+ 0003           ; MODULE:    MCO
+ 0003           ; CONTAINS:  MicroCANopen implementation
+ 0003           ; COPYRIGHT: Embedded Systems Academy, Inc. 2002-2005.
+ 0003           ;            All rights reserved. www.microcanopen.com
+ 0003           ;            This software was written in accordance to the guidelines at
+ 0003           ;            www.esacademy.com/software/softwarestyleguide.pdf
+ 0003           ; DISCLAIM:  Read and understand our disclaimer before using this code!
+ 0003           ;            www.esacademy.com/disclaim.htm
+ 0003           ; LICENSE:   THIS IS THE EDUCATIONAL VERSION OF MICROCANOPEN
+ 0003           ;            See file license_educational.txt or
+ 0003           ;            www.microcanopen.com/license_educational.txt
+ 0003           ;            A commercial MicroCANopen license is available at
+ 0003           ;            www.CANopenStore.com
+ 0003           ; VERSION:   2.10, ESA 12-JAN-05
+ 0003           ;            $LastChangedDate: 2005-01-12 13:53:59 -0700 (Wed, 12 Jan 2005) $
+ 0003           ;            $LastChangedRevision: 48 $
+ 0003           ; ***************************************************************************/ 
+ 0003           ; 
+ 0003           ; #include <string.h>
+ 0003           ; 
+ 0003           ; #include "Camera.h"
+ 0003           ; #include "Interrupts.h"
+ 0003           ; #include "Subroutines.h"
+ 0003           ; #include "mco.h"
+ 0003           ; #include "mcohw.h"
+ 0003           ; #include <stdio.h>
+ 0003           ; #include <stdlib.h>
+ 0003           ; #include "mc9s12a128.h"
+ 0003           ; 
+ 0003           ; 
+ 0003           ; /**************************************************************************
+ 0003           ; GLOBAL VARIABLES
+ 0003           ; ***************************************************************************/ 
+ 0003           ; 
+ 0003           ; 
+ 0003           ; void (*StartAddress)(void);
+ 0003           ; char *RamAddress;
+ 0003           ; char RamData;
+ 0003           ; char RamCkSum;
+ 0003           ; 
+ 0003           ; int No2WireCnt = 0;
+ 0003           ; extern char Gen_Flags;                
+ 0003           ;                       
+ 0003           ; //this structure holds all node specific configuration
+ 0003           ; MCO_CONFIG gMCOConfig;
+ 0003           ; 
+ 0003           ; #if NR_OF_TPDOS > 0
+ 0003           ; // this structure holds all the TPDO configuration data for up to 4 TPDOs
+ 0003           ; TPDO_CONFIG gTPDOConfig[NR_OF_TPDOS];
+ 0003           ; #endif
+ 0003           ; 
+ 0003           ; // this is the next TPDO to be checked in MCO_ProcessStack
+ 0003           ; UNSIGNED8 gTPDONr = NR_OF_TPDOS;
+ 0003           ; 
+ 0003           ; #if NR_OF_RPDOS > 0
+ 0003           ; // this structure holds all the RPDO configuration data for up to 4 RPDOs
+ 0003           ; RPDO_CONFIG gRPDOConfig[NR_OF_RPDOS];
+ 0003           ; #endif
+ 0003           ; 
+ 0003           ; // this structure holds the current receive message
+ 0003           ; CAN_MSG gRxCAN;
+ 0003           ; 
+ 0003           ; // this structure holds the CAN message for SDO responses or aborts
+ 0003           ; CAN_MSG gTxSDO;
+ 0003           ; 
+ 0003           ; // this structure holds the CAN message for Network Master messages
+ 0003           ; CAN_MSG gTxNMT;
+ 0003           ; 
+ 0003           ; // this structure holds the CAN message Monitor Display messages
+ 0003           ; CAN_MSG gTxMonitor;
+ 0003           ; 
+ 0003           ; // process image from user_xxxx.c
+ 0003           ; extern UNSIGNED8 gProcImg[];
+ 0003           ; 
+ 0003           ; // table with SDO Responses for read requests to OD - defined in user_xxx.c
+ 0003           ; extern UNSIGNED8 MEM_CONST SDOResponseTable[];
+ 0003           ; 
+ 0003           ; extern unsigned int Timer1;
+ 0003           ; 
+ 0003           ; 
+ 0003           ; /**************************************************************************
+ 0003           ; LOCAL FUNCTIONS
+ 0003           ; ***************************************************************************/
+ 0003           ; 
+ 0003           ; // SDO Abort Messages
+ 0003           ; #define SDO_ABORT_UNSUPPORTED     0x06010000UL
+ 0003           ; #define SDO_ABORT_NOT_EXISTS      0x06020000UL
+ 0003           ; #define SDO_ABORT_READONLY        0x06010002UL
+ 0003           ; #define SDO_ABORT_TYPEMISMATCH    0x06070010UL
+ 0003           ; #define SDO_ABORT_UNKNOWN_COMMAND 0x05040001UL
+ 0003           ; #define SDO_ABORT_UNKNOWNSUB      0x06090011UL
+ 0003           ; 
+ 0003           ; /**************************************************************************
+ 0003           ; DOES:    Search the SDO Response table for a specifc index and subindex.
+ 0003           ; RETURNS: 255 if not found, otherwise the number of the record found
+ 0003           ;          (staring at zero)
+ 0003           ; **************************************************************************/
+ 0003           ; UNSIGNED8 MCO_Search_OD
+ 0003           ;   (
+ 0003           ;   UNSIGNED16 index,   // Index of OD entry searched
+ 0003           ;   UNSIGNED8 subindex // Subindex of OD entry searched 
+ 0003           ;   )
+ 0003           ; {
+ 0003                   .dbline 111
+ 0003           ;   UNSIGNED8 i;
+ 0003           ;   UNSIGNED8 i_hi, hi;
+ 0003           ;   UNSIGNED8 i_lo, lo;
+ 0003           ;   UNSIGNED8 const *p;
+ 0003           ;   UNSIGNED8 const *r;
+ 0003           ; 
+ 0003           ;   i = 0;
+ 0003 6984              clr 4,S
+ 0005                   .dbline 112
+ 0005           ;   i_hi = (UNSIGNED8) (index >> 8);
+ 0005 EC89              ldd 9,S
+ 0007 B701              tfr A,B
+ 0009 87                clra
+ 000A 6B80              stab 0,S
+ 000C                   .dbline 113
+ 000C           ;   i_lo = (UNSIGNED8) index;
+ 000C E68A              ldab 10,S
+ 000E 6B81              stab 1,S
+ 0010                   .dbline 114
+ 0010           ;   r = &(SDOResponseTable[0]);
+ 0010 CD0000            ldy #_SDOResponseTable
+ 0013 6D82              sty 2,S
+ 0015 1820004E          lbra L8
+ 0019           L7:
+ 0019                   .dbline 116
+ 0019           ;   while (i < 255)
+ 0019           ;   {
+ 0019                   .dbline 117
+ 0019           ;     p = r;
+ 0019 18028287          movw 2,S,7,S
+ 001D                   .dbline 119
+ 001D           ;     // set r to next record in table
+ 001D           ;     r += 8;
+ 001D EC82              ldd 2,S
+ 001F C30008            addd #8
+ 0022 6C82              std 2,S
+ 0024                   .dbline 121
+ 0024           ;     // skip command byte
+ 0024           ;     p++;
+ 0024 ED87              ldy 7,S
+ 0026 02                iny
+ 0027 6D87              sty 7,S
+ 0029                   .dbline 122
+ 0029           ;     lo = *p;
+ 0029 180A4086          movb 0,Y,6,S
+ 002D                   .dbline 123
+ 002D           ;     p++;
+ 002D ED87              ldy 7,S
+ 002F 02                iny
+ 0030 6D87              sty 7,S
+ 0032                   .dbline 124
+ 0032           ;     hi = *p;
+ 0032 180A4085          movb 0,Y,5,S
+ 0036                   .dbline 126
+ 0036           ;     // if index in table is 0xFFFF, then this is the end of the table
+ 0036           ;     if ((lo == 0xFF) && (hi == 0xFF))
+ 0036 E686              ldab 6,S
+ 0038 C1FF              cmpb #255
+ 003A 260B              bne L10
+ 003C E685              ldab 5,S
+ 003E C1FF              cmpb #255
+ 0040 2605              bne L10
+ 0042                   .dbline 127
+ 0042           ;     {
+ 0042                   .dbline 128
+ 0042           ;       return 255;
+ 0042 CC00FF            ldd #255
+ 0045 202B              bra L6
+ 0047           L10:
+ 0047                   .dbline 130
+ 0047           ;     }
+ 0047           ;     if (lo == i_lo)
+ 0047 E686              ldab 6,S
+ 0049 E181              cmpb 1,S
+ 004B 2618              bne L12
+ 004D                   .dbline 131
+ 004D           ;     { 
+ 004D                   .dbline 132
+ 004D           ;       if (hi == i_hi)
+ 004D E685              ldab 5,S
+ 004F E180              cmpb 0,S
+ 0051 2612              bne L14
+ 0053                   .dbline 133
+ 0053           ;       { 
+ 0053                   .dbline 134
+ 0053           ;         p++;
+ 0053 ED87              ldy 7,S
+ 0055 02                iny
+ 0056 6D87              sty 7,S
+ 0058                   .dbline 136
+ 0058           ;         // entry found?
+ 0058           ;         if (*p == subindex)
+ 0058 E6F30007          ldab [7,S]
+ 005C E18F              cmpb 15,S
+ 005E 2605              bne L16
+ 0060                   .dbline 137
+ 0060           ;         {
+ 0060                   .dbline 138
+ 0060           ;           return i;
+ 0060 E684              ldab 4,S
+ 0062 87                clra
+ 0063 200D              bra L6
+ 0065           L16:
+ 0065                   .dbline 140
+ 0065           ;         }
+ 0065           ;       }
+ 0065           L14:
+ 0065                   .dbline 141
+ 0065           ;     }
+ 0065           L12:
+ 0065                   .dbline 142
+ 0065           ;     i++;
+ 0065 6284              inc 4,S
+ 0067                   .dbline 143
+ 0067           ;   }
+ 0067           L8:
+ 0067                   .dbline 115
+ 0067 E684              ldab 4,S
+ 0069 C1FF              cmpb #255
+ 006B 1825FFAA          lblo L7
+ 006F                   .dbline 146
+ 006F           ; 
+ 006F           ;   // not found
+ 006F           ;   return 255;
+ 006F CC00FF            ldd #255
+ 0072                   .dbline -2
+ 0072           L6:
+ 0072                   .dbline 0 ; func end
+ 0072 1B8B              leas 11,S
+ 0074 0A                rtc
+ 0075                   .dbsym l i_hi 0 c
+ 0075                   .dbsym l i_lo 1 c
+ 0075                   .dbsym l r 2 pc
+ 0075                   .dbsym l i 4 c
+ 0075                   .dbsym l hi 5 c
+ 0075                   .dbsym l lo 6 c
+ 0075                   .dbsym l p 7 pc
+ 0075                   .dbsym l subindex 15 c
+ 0075                   .dbsym l index 9 i
+ 0075                   .dbend
+ 0075                   .dbfunc e MCO_Send_SDO_Abort _MCO_Send_SDO_Abort fV
+ 0075           ;              i -> 2,SP
+ 0075           ;      ErrorCode -> 6,SP
+ 0075           $_MCO_Send_SDO_Abort::
+ 0075 1B9D              leas -3,S
+ 0077                   .dbline -1
+ 0077                   .dbline 158
+ 0077           ; }
+ 0077           ; 
+ 0077           ; 
+ 0077           ; /**************************************************************************
+ 0077           ; DOES:    Generates an SDO Abort Response
+ 0077           ; RETURNS: nothing
+ 0077           ; **************************************************************************/
+ 0077           ; void MCO_Send_SDO_Abort
+ 0077           ;   (
+ 0077           ;   UNSIGNED32 ErrorCode  // 4 byte SDO abort error code
+ 0077           ;   )
+ 0077           ; {
+ 0077                   .dbline 162
+ 0077           ;   UNSIGNED8 i;
+ 0077           ; 
+ 0077           ;   // construct message data
+ 0077           ;   gTxSDO.BUF[0] = 0x80;
+ 0077 180B80001C        movb #128,_gTxSDO+4
+ 007C                   .dbline 163
+ 007C           ;   for (i=0;i<4;i++)
+ 007C 6982              clr 2,S
+ 007E 202B              bra L23
+ 0080           L20:
+ 0080                   .dbline 164
+ 0080           ;   {
+ 0080                   .dbline 165
+ 0080           ;     gTxSDO.BUF[4+i] = ErrorCode;
+ 0080 CD0020            ldy #_gTxSDO+4+4
+ 0083 E682              ldab 2,S
+ 0085 87                clra
+ 0086 6D80              sty 0,S
+ 0088 E380              addd 0,S
+ 008A B746              tfr D,Y
+ 008C EC88              ldd 8,S
+ 008E 3B                pshd
+ 008F EC88              ldd 8,S
+ 0091 3B                pshd
+ 0092 1B83              leas 3,S
+ 0094 33                pulb
+ 0095 6B40              stab 0,Y
+ 0097                   .dbline 166
+ 0097           ;     ErrorCode >>= 8;
+ 0097 EC88              ldd 8,S
+ 0099 3B                pshd
+ 009A EC88              ldd 8,S
+ 009C 3B                pshd
+ 009D CC0008            ldd #8
+ 00A0 160000            jsr lsr4
+ 00A3 3A                puld
+ 00A4 6C88              std 8,S
+ 00A6 3A                puld
+ 00A7 6C88              std 8,S
+ 00A9                   .dbline 167
+ 00A9           ;   }
+ 00A9           L21:
+ 00A9                   .dbline 163
+ 00A9 6282              inc 2,S
+ 00AB           L23:
+ 00AB                   .dbline 163
+ 00AB E682              ldab 2,S
+ 00AD C104              cmpb #4
+ 00AF 25CF              blo L20
+ 00B1                   .dbline 170
+ 00B1           ; 
+ 00B1           ;   // transmit message
+ 00B1           ;   if (!MCOHW_PushMessage(&gTxSDO))
+ 00B1 CC0018            ldd #_gTxSDO
+ 00B4 4A000000          xcall $_MCOHW_PushMessage
+ 00B8 87                clra
+ 00B9 C100              cmpb #0
+ 00BB 2607              bne L26
+ 00BD                   .dbline 171
+ 00BD           ;   {
+ 00BD                   .dbline 173
+ 00BD           ;     // failed to transmit
+ 00BD           ;     MCOUSER_FatalError(0x8801);
+ 00BD CC8801            ldd #34817
+ 00C0 4A000000          xcall $_MCOUSER_FatalError
+ 00C4                   .dbline 174
+ 00C4           ;   }
+ 00C4           L26:
+ 00C4                   .dbline -2
+ 00C4           L18:
+ 00C4                   .dbline 0 ; func end
+ 00C4 1B83              leas 3,S
+ 00C6 0A                rtc
+ 00C7                   .dbsym l i 2 c
+ 00C7                   .dbsym l ErrorCode 6 l
+ 00C7                   .dbend
+ 00C7                   .dbfunc e MCO_Handle_SDO_Request _MCO_Handle_SDO_Request fc
+ 00C7           ;              x -> 6,SP
+ 00C7           ;          found -> 7,SP
+ 00C7           ;       subindex -> 8,SP
+ 00C7           ;          index -> 9,SP
+ 00C7           ;            cmd -> 11,SP
+ 00C7           ;          pData -> 12,SP
+ 00C7           $_MCO_Handle_SDO_Request::
+ 00C7 3B                pshd
+ 00C8 1B94              leas -12,S
+ 00CA                   .dbline -1
+ 00CA                   .dbline 185
+ 00CA           ; }
+ 00CA           ; 
+ 00CA           ; /**************************************************************************
+ 00CA           ; DOES:    Handle an incoimg SDO request.
+ 00CA           ; RETURNS: returns 1 if SDO access success, returns 0 if SDO abort generated
+ 00CA           ; **************************************************************************/
+ 00CA           ; UNSIGNED8 MCO_Handle_SDO_Request 
+ 00CA           ;   (
+ 00CA           ;   UNSIGNED8 *pData  // pointer to 8 data bytes with SDO data
+ 00CA           ;   )
+ 00CA           ; {
+ 00CA                   .dbline 197
+ 00CA           ;   // command byte of SDO request
+ 00CA           ;   UNSIGNED8 cmd;
+ 00CA           ;   // index of SDO request
+ 00CA           ;   UNSIGNED16 index;
+ 00CA           ;   // subindex of SDO request
+ 00CA           ;   UNSIGNED8 subindex;
+ 00CA           ;   // search result of Search_OD
+ 00CA           ;   UNSIGNED8 found;
+ 00CA           ; 
+ 00CA           ;   // init variables
+ 00CA           ;   // upper 3 bits are the command
+ 00CA           ;   cmd = *pData & 0xE0;
+ 00CA E6F3000C          ldab [12,S]
+ 00CE C4E0              andb #224
+ 00D0 6B8B              stab 11,S
+ 00D2                   .dbline 199
+ 00D2           ;   // get high byte of index
+ 00D2           ;   index = pData[2];
+ 00D2 EC8C              ldd 12,S
+ 00D4 C30002            addd #2
+ 00D7 B746              tfr D,Y
+ 00D9 E640              ldab 0,Y
+ 00DB 87                clra
+ 00DC 6C89              std 9,S
+ 00DE                   .dbline 201
+ 00DE           ;   // add low byte of index
+ 00DE           ;   index = pData[1] + (index << 8);
+ 00DE B710              tfr B,A
+ 00E0 C7                clrb
+ 00E1 B746              tfr D,Y
+ 00E3 EE8C              ldx 12,S
+ 00E5 08                inx
+ 00E6 E600              ldab 0,X
+ 00E8 87                clra
+ 00E9 6D84              sty 4,S
+ 00EB E384              addd 4,S
+ 00ED 6C89              std 9,S
+ 00EF                   .dbline 203
+ 00EF           ;   // subindex
+ 00EF           ;   subindex = pData[3];
+ 00EF EC8C              ldd 12,S
+ 00F1 C30003            addd #3
+ 00F4 B746              tfr D,Y
+ 00F6 180A4088          movb 0,Y,8,S
+ 00FA                   .dbline 207
+ 00FA           ; 
+ 00FA           ;   // Copy Multiplexor into response
+ 00FA           ;   // index low
+ 00FA           ;   gTxSDO.BUF[1] = pData[1];
+ 00FA ED8C              ldy 12,S
+ 00FC 02                iny
+ 00FD 180D40001D        movb 0,Y,_gTxSDO+4+1
+ 0102                   .dbline 209
+ 0102           ;   // index high
+ 0102           ;   gTxSDO.BUF[2] = pData[2];
+ 0102 EC8C              ldd 12,S
+ 0104 C30002            addd #2
+ 0107 B746              tfr D,Y
+ 0109 180D40001E        movb 0,Y,_gTxSDO+4+2
+ 010E                   .dbline 211
+ 010E           ;   // subindex
+ 010E           ;   gTxSDO.BUF[3] = pData[3];
+ 010E EC8C              ldd 12,S
+ 0110 C30003            addd #3
+ 0113 B746              tfr D,Y
+ 0115 180D40001F        movb 0,Y,_gTxSDO+4+3
+ 011A                   .dbline 214
+ 011A           ; 
+ 011A           ;   // is it a read or write command?
+ 011A           ;   if ((cmd == 0x40) || (cmd == 0x20)) 
+ 011A E68B              ldab 11,S
+ 011C C140              cmpb #64
+ 011E 2708              beq L37
+ 0120 E68B              ldab 11,S
+ 0122 C120              cmpb #32
+ 0124 1826027A          lbne L35
+ 0128           L37:
+ 0128                   .dbline 215
+ 0128           ;   {  
+ 0128                   .dbline 217
+ 0128           ;     // search const table 
+ 0128           ;     found = MCO_Search_OD(index,subindex);
+ 0128 E688              ldab 8,S
+ 012A 87                clra
+ 012B 6C80              std 0,S
+ 012D EC89              ldd 9,S
+ 012F 4A000000          xcall $_MCO_Search_OD
+ 0133 6B87              stab 7,S
+ 0135                   .dbline 219
+ 0135           ;     // entry found?
+ 0135           ;     if (found < 255)
+ 0135 C1FF              cmpb #255
+ 0137 1824014A          lbhs L38
+ 013B                   .dbline 220
+ 013B           ;     {
+ 013B                   .dbline 222
+ 013B           ;       // read command?
+ 013B           ;       if (cmd == 0x40)
+ 013B E68B              ldab 11,S
+ 013D C140              cmpb #64
+ 013F 2635              bne L40
+ 0141                   .dbline 223
+ 0141           ;       {
+ 0141                   .dbline 225
+ 0141           ; //darrell added (void *) to following memcpy function
+ 0141           ;         memcpy(&gTxSDO.BUF[0],(void *)&SDOResponseTable[(found*8)],8);
+ 0141 CD0008            ldy #8
+ 0144 6D82              sty 2,S
+ 0146 CD0000            ldy #_SDOResponseTable
+ 0149 E687              ldab 7,S
+ 014B 87                clra
+ 014C 59                lsld
+ 014D 59                lsld
+ 014E 59                lsld
+ 014F 6D84              sty 4,S
+ 0151 E384              addd 4,S
+ 0153 6C80              std 0,S
+ 0155 CC001C            ldd #_gTxSDO+4
+ 0158 4A000000          xcall $_memcpy
+ 015C                   .dbline 228
+ 015C           ; 
+ 015C           ;               
+ 015C           ;         if (!MCOHW_PushMessage(&gTxSDO))
+ 015C CC0018            ldd #_gTxSDO
+ 015F 4A000000          xcall $_MCOHW_PushMessage
+ 0163 87                clra
+ 0164 C100              cmpb #0
+ 0166 2607              bne L43
+ 0168                   .dbline 229
+ 0168           ;         {
+ 0168                   .dbline 230
+ 0168           ;           MCOUSER_FatalError(0x8802);
+ 0168 CC8802            ldd #34818
+ 016B 4A000000          xcall $_MCOUSER_FatalError
+ 016F                   .dbline 231
+ 016F           ;         }
+ 016F           L43:
+ 016F                   .dbline 234
+ 016F           ; 
+ 016F           ;               
+ 016F           ;         return 1;
+ 016F CC0001            ldd #1
+ 0172 18200248          lbra L28
+ 0176           L40:
+ 0176                   .dbline 242
+ 0176           ;       }
+ 0176           ;   
+ 0176           ;       // write command
+ 0176           ;       //darrell remarked the MCO_Send_SDO_Abort
+ 0176           ;       //MCO_Send_SDO_Abort(SDO_ABORT_READONLY);
+ 0176           ;       
+ 0176           ;          
+ 0176           ;         if ( index == 0x2100 && !((gRxCAN.BUF[4]+gRxCAN.BUF[5]+gRxCAN.BUF[6]+gRxCAN.BUF[7]) & 0xff) )
+ 0176 ED89              ldy 9,S
+ 0178 8D2100            cpy #8448
+ 017B 182600FF          lbne L45
+ 017F F6002C            ldab _gRxCAN+4+4
+ 0182 FB002D            addb _gRxCAN+4+5
+ 0185 FB002E            addb _gRxCAN+4+6
+ 0188 FB002F            addb _gRxCAN+4+7
+ 018B C4FF              andb #255
+ 018D C100              cmpb #0
+ 018F 182600EB          lbne L45
+ 0193                   .dbline 243
+ 0193           ;         {
+ 0193                   .dbline 244
+ 0193           ;             if ( subindex == 0 )
+ 0193 E688              ldab 8,S
+ 0195 C100              cmpb #0
+ 0197 18260077          lbne L55
+ 019B                   .dbline 245
+ 019B           ;                 {       
+ 019B                   .dbline 246
+ 019B           ;                 RamAddress = (char*)(gRxCAN.BUF[4]*256 + gRxCAN.BUF[5]);
+ 019B F6002C            ldab _gRxCAN+4+4
+ 019E 87                clra
+ 019F B746              tfr D,Y
+ 01A1 CC0100            ldd #256
+ 01A4 13                emul
+ 01A5 B746              tfr D,Y
+ 01A7 F6002D            ldab _gRxCAN+4+5
+ 01AA 87                clra
+ 01AB B745              tfr D,X
+ 01AD B764              tfr Y,D
+ 01AF 6E84              stx 4,S
+ 01B1 E384              addd 4,S
+ 01B3 B746              tfr D,Y
+ 01B5 7D0117            sty _RamAddress
+ 01B8                   .dbline 247
+ 01B8           ;                         RamData = gRxCAN.BUF[6];
+ 01B8 180C002E0116      movb _gRxCAN+4+6,_RamData
+ 01BE                   .dbline 248
+ 01BE           ;                         RamCkSum = gRxCAN.BUF[7];
+ 01BE 180C002F0115      movb _gRxCAN+4+7,_RamCkSum
+ 01C4                   .dbline 249
+ 01C4           ;                         *RamAddress = RamData;
+ 01C4 F60116            ldab _RamData
+ 01C7 B716              tfr B,Y
+ 01C9 FE0117            ldx _RamAddress
+ 01CC B761              tfr Y,B
+ 01CE 6B00              stab 0,X
+ 01D0                   .dbline 250
+ 01D0           ;               gTxSDO.BUF[0] = 0x60;
+ 01D0 180B60001C        movb #96,_gTxSDO+4
+ 01D5                   .dbline 251
+ 01D5           ;               gTxSDO.BUF[1] = 0x00;
+ 01D5 79001D            clr _gTxSDO+4+1
+ 01D8                   .dbline 252
+ 01D8           ;               gTxSDO.BUF[2] = 0x21;
+ 01D8 180B21001E        movb #33,_gTxSDO+4+2
+ 01DD                   .dbline 253
+ 01DD           ;               gTxSDO.BUF[3] = 0x00;
+ 01DD 79001F            clr _gTxSDO+4+3
+ 01E0                   .dbline 254
+ 01E0           ;               gTxSDO.BUF[4] = gRxCAN.BUF[4];
+ 01E0 180C002C0020      movb _gRxCAN+4+4,_gTxSDO+4+4
+ 01E6                   .dbline 255
+ 01E6           ;               gTxSDO.BUF[5] = gRxCAN.BUF[5];
+ 01E6 180C002D0021      movb _gRxCAN+4+5,_gTxSDO+4+5
+ 01EC                   .dbline 256
+ 01EC           ;               gTxSDO.BUF[6] = gRxCAN.BUF[6];
+ 01EC 180C002E0022      movb _gRxCAN+4+6,_gTxSDO+4+6
+ 01F2                   .dbline 257
+ 01F2           ;               gTxSDO.BUF[7] = gRxCAN.BUF[7];
+ 01F2 180C002F0023      movb _gRxCAN+4+7,_gTxSDO+4+7
+ 01F8                   .dbline 260
+ 01F8           ;                                 
+ 01F8           ;                         
+ 01F8           ;                         if (!MCOHW_PushMessage(&gTxSDO))
+ 01F8 CC0018            ldd #_gTxSDO
+ 01FB 4A000000          xcall $_MCOHW_PushMessage
+ 01FF 87                clra
+ 0200 C100              cmpb #0
+ 0202 2607              bne L88
+ 0204                   .dbline 261
+ 0204           ;               {
+ 0204                   .dbline 262
+ 0204           ;                   MCOUSER_FatalError(0x8802);
+ 0204 CC8802            ldd #34818
+ 0207 4A000000          xcall $_MCOUSER_FatalError
+ 020B                   .dbline 263
+ 020B           ;               }
+ 020B           L88:
+ 020B                   .dbline 264
+ 020B           ;               return 1;
+ 020B CC0001            ldd #1
+ 020E 182001AC          lbra L28
+ 0212           L55:
+ 0212                   .dbline 266
+ 0212           ;                 }
+ 0212           ;                 else if ( subindex == 1 )
+ 0212 E688              ldab 8,S
+ 0214 C101              cmpb #1
+ 0216 18260064          lbne L90
+ 021A                   .dbline 267
+ 021A           ;                 {
+ 021A                   .dbline 269
+ 021A           ;                         char x;
+ 021A           ;                     StartAddress = (void*)(gRxCAN.BUF[4]*256 + gRxCAN.BUF[5]);
+ 021A F6002C            ldab _gRxCAN+4+4
+ 021D 87                clra
+ 021E B746              tfr D,Y
+ 0220 CC0100            ldd #256
+ 0223 13                emul
+ 0224 B746              tfr D,Y
+ 0226 F6002D            ldab _gRxCAN+4+5
+ 0229 87                clra
+ 022A B745              tfr D,X
+ 022C B764              tfr Y,D
+ 022E 6E84              stx 4,S
+ 0230 E384              addd 4,S
+ 0232 7C0119            std _StartAddress
+ 0235                   .dbline 270
+ 0235           ;                         StartAddress();
+ 0235 FD0119            ldy _StartAddress
+ 0238 1540              jsr 0,Y
+ 023A                   .dbline 271
+ 023A           ;               gTxSDO.BUF[0] = 0x60;
+ 023A 180B60001C        movb #96,_gTxSDO+4
+ 023F                   .dbline 272
+ 023F           ;               gTxSDO.BUF[1] = 0x00;
+ 023F 79001D            clr _gTxSDO+4+1
+ 0242                   .dbline 273
+ 0242           ;               gTxSDO.BUF[2] = 0x21;
+ 0242 180B21001E        movb #33,_gTxSDO+4+2
+ 0247                   .dbline 274
+ 0247           ;               gTxSDO.BUF[3] = 0x01;
+ 0247 180B01001F        movb #1,_gTxSDO+4+3
+ 024C                   .dbline 275
+ 024C           ;               gTxSDO.BUF[4] = gRxCAN.BUF[4];
+ 024C 180C002C0020      movb _gRxCAN+4+4,_gTxSDO+4+4
+ 0252                   .dbline 276
+ 0252           ;               gTxSDO.BUF[5] = gRxCAN.BUF[5];
+ 0252 180C002D0021      movb _gRxCAN+4+5,_gTxSDO+4+5
+ 0258                   .dbline 277
+ 0258           ;               gTxSDO.BUF[6] = gRxCAN.BUF[6];
+ 0258 180C002E0022      movb _gRxCAN+4+6,_gTxSDO+4+6
+ 025E                   .dbline 278
+ 025E           ;               gTxSDO.BUF[7] = gRxCAN.BUF[7];
+ 025E 180C002F0023      movb _gRxCAN+4+7,_gTxSDO+4+7
+ 0264                   .dbline 279
+ 0264           ;                         if (!MCOHW_PushMessage(&gTxSDO))
+ 0264 CC0018            ldd #_gTxSDO
+ 0267 4A000000          xcall $_MCOHW_PushMessage
+ 026B 87                clra
+ 026C C100              cmpb #0
+ 026E 2607              bne L119
+ 0270                   .dbline 280
+ 0270           ;               {
+ 0270                   .dbline 281
+ 0270           ;                   MCOUSER_FatalError(0x8802);
+ 0270 CC8802            ldd #34818
+ 0273 4A000000          xcall $_MCOUSER_FatalError
+ 0277                   .dbline 282
+ 0277           ;               }
+ 0277           L119:
+ 0277                   .dbline 283
+ 0277           ;               return 1;
+ 0277 CC0001            ldd #1
+ 027A 18200140          lbra L28
+ 027E           L90:
+ 027E                   .dbline 286
+ 027E           ;                 }       
+ 027E           ;                 
+ 027E           ;         }
+ 027E           L45:
+ 027E                   .dbline 288
+ 027E           ; 
+ 027E           ;       return 0;
+ 027E CC0000            ldd #0
+ 0281 18200139          lbra L28
+ 0285           L38:
+ 0285                   .dbline 293
+ 0285           ;     }
+ 0285           ;       
+ 0285           ; 
+ 0285           ; 
+ 0285           ;     if ((index == 0x1001) && (subindex == 0x00))
+ 0285 ED89              ldy 9,S
+ 0287 8D1001            cpy #4097
+ 028A 2646              bne L121
+ 028C E688              ldab 8,S
+ 028E C100              cmpb #0
+ 0290 2640              bne L121
+ 0292                   .dbline 294
+ 0292           ;     {
+ 0292                   .dbline 296
+ 0292           ;       // read command
+ 0292           ;       if (cmd == 0x40)
+ 0292 E68B              ldab 11,S
+ 0294 C140              cmpb #64
+ 0296 2625              bne L123
+ 0298                   .dbline 297
+ 0298           ;       {
+ 0298                   .dbline 299
+ 0298           ;         // expedited, 1 byte of data
+ 0298           ;         gTxSDO.BUF[0] = 0x4F;
+ 0298 180B4F001C        movb #79,_gTxSDO+4
+ 029D                   .dbline 300
+ 029D           ;         gTxSDO.BUF[4] = gMCOConfig.error_register;
+ 029D 180C01140020      movb _gMCOConfig+20,_gTxSDO+4+4
+ 02A3                   .dbline 301
+ 02A3           ;         if (!MCOHW_PushMessage(&gTxSDO))
+ 02A3 CC0018            ldd #_gTxSDO
+ 02A6 4A000000          xcall $_MCOHW_PushMessage
+ 02AA 87                clra
+ 02AB C100              cmpb #0
+ 02AD 2607              bne L129
+ 02AF                   .dbline 302
+ 02AF           ;         {
+ 02AF                   .dbline 303
+ 02AF           ;           MCOUSER_FatalError(0x8802);
+ 02AF CC8802            ldd #34818
+ 02B2 4A000000          xcall $_MCOUSER_FatalError
+ 02B6                   .dbline 304
+ 02B6           ;         }
+ 02B6           L129:
+ 02B6                   .dbline 305
+ 02B6           ;         return 1;
+ 02B6 CC0001            ldd #1
+ 02B9 18200101          lbra L28
+ 02BD           L123:
+ 02BD                   .dbline 308
+ 02BD           ;       }
+ 02BD           ;       // write command
+ 02BD           ;       MCO_Send_SDO_Abort(SDO_ABORT_READONLY);
+ 02BD 1800800601        movw #1537,0,S
+ 02C2 1800820002        movw #2,2,S
+ 02C7 4A007575          xcall $_MCO_Send_SDO_Abort
+ 02CB                   .dbline 309
+ 02CB           ;       return 0;
+ 02CB CC0000            ldd #0
+ 02CE 182000EC          lbra L28
+ 02D2           L121:
+ 02D2                   .dbline 315
+ 02D2           ;     }
+ 02D2           ; 
+ 02D2           ; #ifdef DYNAMIC_HEARTBEAT
+ 02D2           ;     // hard coding of dynamic read/write accesses
+ 02D2           ;     // access to [1017,00] - heartbeat time
+ 02D2           ;     if ((index == 0x1017) && (subindex == 0x00))
+ 02D2 ED89              ldy 9,S
+ 02D4 8D1017            cpy #4119
+ 02D7 1826009E          lbne L131
+ 02DB E688              ldab 8,S
+ 02DD C100              cmpb #0
+ 02DF 18260096          lbne L131
+ 02E3                   .dbline 316
+ 02E3           ;     {
+ 02E3                   .dbline 318
+ 02E3           ;       // read command
+ 02E3           ;       if (cmd == 0x40)
+ 02E3 E68B              ldab 11,S
+ 02E5 C140              cmpb #64
+ 02E7 262E              bne L133
+ 02E9                   .dbline 319
+ 02E9           ;       {
+ 02E9                   .dbline 321
+ 02E9           ;         // expedited, 2 bytes of data
+ 02E9           ;         gTxSDO.BUF[0] = 0x4B;
+ 02E9 180B4B001C        movb #75,_gTxSDO+4
+ 02EE                   .dbline 322
+ 02EE           ;         gTxSDO.BUF[4] = (UNSIGNED8) gMCOConfig.heartbeat_time;
+ 02EE F6010F            ldab _gMCOConfig+14+1
+ 02F1 7B0020            stab _gTxSDO+4+4
+ 02F4                   .dbline 323
+ 02F4           ;         gTxSDO.BUF[5] = (UNSIGNED8) (gMCOConfig.heartbeat_time >> 8);
+ 02F4 FC010E            ldd _gMCOConfig+14
+ 02F7 B701              tfr A,B
+ 02F9 87                clra
+ 02FA 7B0021            stab _gTxSDO+4+5
+ 02FD                   .dbline 324
+ 02FD           ;         if (!MCOHW_PushMessage(&gTxSDO))
+ 02FD CC0018            ldd #_gTxSDO
+ 0300 4A000000          xcall $_MCOHW_PushMessage
+ 0304 87                clra
+ 0305 C100              cmpb #0
+ 0307 2607              bne L142
+ 0309                   .dbline 325
+ 0309           ;         {
+ 0309                   .dbline 326
+ 0309           ;           MCOUSER_FatalError(0x8802);
+ 0309 CC8802            ldd #34818
+ 030C 4A000000          xcall $_MCOUSER_FatalError
+ 0310                   .dbline 327
+ 0310           ;         }
+ 0310           L142:
+ 0310                   .dbline 328
+ 0310           ;         return 1;
+ 0310 CC0001            ldd #1
+ 0313 182000A7          lbra L28
+ 0317           L133:
+ 0317                   .dbline 331
+ 0317           ;       }
+ 0317           ;       // expedited write command with 2 bytes of data
+ 0317           ;       if (*pData == 0x2B)
+ 0317 E6F3000C          ldab [12,S]
+ 031B C12B              cmpb #43
+ 031D 2647              bne L144
+ 031F                   .dbline 332
+ 031F           ;       {
+ 031F                   .dbline 333
+ 031F           ;         gMCOConfig.heartbeat_time = pData[5];
+ 031F EC8C              ldd 12,S
+ 0321 C30005            addd #5
+ 0324 B746              tfr D,Y
+ 0326 E640              ldab 0,Y
+ 0328 87                clra
+ 0329 7C010E            std _gMCOConfig+14
+ 032C                   .dbline 334
+ 032C           ;         gMCOConfig.heartbeat_time = (gMCOConfig.heartbeat_time << 8) + pData[4];
+ 032C EC8C              ldd 12,S
+ 032E C30004            addd #4
+ 0331 B746              tfr D,Y
+ 0333 B6010F            ldaa _gMCOConfig+14+1
+ 0336 E640              ldab 0,Y
+ 0338 7C010E            std _gMCOConfig+14
+ 033B                   .dbline 336
+ 033B           ;         // write response
+ 033B           ;         gTxSDO.BUF[0] = 0x60;
+ 033B 180B60001C        movb #96,_gTxSDO+4
+ 0340                   .dbline 338
+ 0340           ;         // Needed to pass conformance test: clear unused bytes
+ 0340           ;         gTxSDO.BUF[4] = 0;
+ 0340 790020            clr _gTxSDO+4+4
+ 0343                   .dbline 339
+ 0343           ;         gTxSDO.BUF[5] = 0;
+ 0343 790021            clr _gTxSDO+4+5
+ 0346                   .dbline 340
+ 0346           ;         gTxSDO.BUF[6] = 0;
+ 0346 790022            clr _gTxSDO+4+6
+ 0349                   .dbline 341
+ 0349           ;         gTxSDO.BUF[7] = 0;
+ 0349 790023            clr _gTxSDO+4+7
+ 034C                   .dbline 342
+ 034C           ;         if (!MCOHW_PushMessage(&gTxSDO))
+ 034C CC0018            ldd #_gTxSDO
+ 034F 4A000000          xcall $_MCOHW_PushMessage
+ 0353 87                clra
+ 0354 C100              cmpb #0
+ 0356 2607              bne L158
+ 0358                   .dbline 343
+ 0358           ;         {
+ 0358                   .dbline 344
+ 0358           ;           MCOUSER_FatalError(0x8802);
+ 0358 CC8802            ldd #34818
+ 035B 4A000000          xcall $_MCOUSER_FatalError
+ 035F                   .dbline 345
+ 035F           ;         }
+ 035F           L158:
+ 035F                   .dbline 346
+ 035F           ;         return 1;
+ 035F CC0001            ldd #1
+ 0362 18200058          lbra L28
+ 0366           L144:
+ 0366                   .dbline 348
+ 0366           ;       }
+ 0366           ;       MCO_Send_SDO_Abort(SDO_ABORT_UNSUPPORTED);
+ 0366 1800800601        movw #1537,0,S
+ 036B 1800820000        movw #0,2,S
+ 0370 4A007575          xcall $_MCO_Send_SDO_Abort
+ 0374                   .dbline 349
+ 0374           ;       return 0;
+ 0374 CC0000            ldd #0
+ 0377 2045              bra L28
+ 0379           L131:
+ 0379                   .dbline 354
+ 0379           ;     }
+ 0379           ; #endif // DYNAMIC HEARTBEAT
+ 0379           ; 
+ 0379           ;     // Requested OD entry not found
+ 0379           ;     if (subindex == 0)
+ 0379 E688              ldab 8,S
+ 037B C100              cmpb #0
+ 037D 2610              bne L160
+ 037F                   .dbline 355
+ 037F           ;     {
+ 037F                   .dbline 356
+ 037F           ;       MCO_Send_SDO_Abort(SDO_ABORT_NOT_EXISTS);
+ 037F 1800800602        movw #1538,0,S
+ 0384 1800820000        movw #0,2,S
+ 0389 4A007575          xcall $_MCO_Send_SDO_Abort
+ 038D                   .dbline 357
+ 038D           ;     }
+ 038D 200E              bra L161
+ 038F           L160:
+ 038F                   .dbline 359
+ 038F           ;     else
+ 038F           ;     {
+ 038F                   .dbline 360
+ 038F           ;       MCO_Send_SDO_Abort(SDO_ABORT_UNKNOWNSUB);
+ 038F 1800800609        movw #1545,0,S
+ 0394 1800820011        movw #17,2,S
+ 0399 4A007575          xcall $_MCO_Send_SDO_Abort
+ 039D                   .dbline 361
+ 039D           ;     }
+ 039D           L161:
+ 039D                   .dbline 362
+ 039D           ;     return 0;
+ 039D CC0000            ldd #0
+ 03A0 201C              bra L28
+ 03A2           L35:
+ 03A2                   .dbline 365
+ 03A2           ;   }
+ 03A2           ;   // ignore abort received - all other produce an error
+ 03A2           ;   if (cmd != 0x80)
+ 03A2 E68B              ldab 11,S
+ 03A4 C180              cmpb #128
+ 03A6 2713              beq L162
+ 03A8                   .dbline 366
+ 03A8           ;   {
+ 03A8                   .dbline 367
+ 03A8           ;     MCO_Send_SDO_Abort(SDO_ABORT_UNKNOWN_COMMAND);
+ 03A8 1800800504        movw #1284,0,S
+ 03AD 1800820001        movw #1,2,S
+ 03B2 4A007575          xcall $_MCO_Send_SDO_Abort
+ 03B6                   .dbline 368
+ 03B6           ;     return 0;
+ 03B6 CC0000            ldd #0
+ 03B9 2003              bra L28
+ 03BB           L162:
+ 03BB                   .dbline 370
+ 03BB           ;   }
+ 03BB           ;   return 1;
+ 03BB CC0001            ldd #1
+ 03BE                   .dbline -2
+ 03BE           L28:
+ 03BE                   .dbline 0 ; func end
+ 03BE 1B8E              leas 14,S
+ 03C0 0A                rtc
+ 03C1                   .dbsym l x 6 c
+ 03C1                   .dbsym l found 7 c
+ 03C1                   .dbsym l subindex 8 c
+ 03C1                   .dbsym l index 9 i
+ 03C1                   .dbsym l cmd 11 c
+ 03C1                   .dbsym l pData 12 pc
+ 03C1                   .dbend
+ 03C1                   .dbfunc e MCO_Prepare_TPDOs _MCO_Prepare_TPDOs fV
+ 03C1           ;              i -> 12,SP
+ 03C1           $_MCO_Prepare_TPDOs::
+ 03C1 1B93              leas -13,S
+ 03C3                   .dbline -1
+ 03C3                   .dbline 384
+ 03C3           ; }
+ 03C3           ; 
+ 03C3           ; 
+ 03C3           ; #if NR_OF_TPDOS > 0
+ 03C3           ; /**************************************************************************
+ 03C3           ; DOES:    Called when going into the operational mode.
+ 03C3           ;          Prepares all TPDOs for operational.
+ 03C3           ; RETURNS: nothing
+ 03C3           ; **************************************************************************/
+ 03C3           ; void MCO_Prepare_TPDOs 
+ 03C3           ;   (
+ 03C3           ;     void
+ 03C3           ;   )
+ 03C3           ; {
+ 03C3                   .dbline 387
+ 03C3           ; UNSIGNED8 i;
+ 03C3           ; 
+ 03C3           ;   i = 0;
+ 03C3 698C              clr 12,S
+ 03C5 182000C9          lbra L166
+ 03C9           L165:
+ 03C9                   .dbline 390
+ 03C9           ;   // prepare all TPDOs for transmission
+ 03C9           ;   while (i < NR_OF_TPDOS)
+ 03C9           ;   {
+ 03C9                   .dbline 392
+ 03C9           ;     // this TPDO is used
+ 03C9           ;     if (gTPDOConfig[i].CAN.ID != 0)
+ 03C9 E68C              ldab 12,S
+ 03CB 87                clra
+ 03CC B746              tfr D,Y
+ 03CE CC0016            ldd #22
+ 03D1 13                emul
+ 03D2 B746              tfr D,Y
+ 03D4 CE0050            ldx #_gTPDOConfig
+ 03D7 B764              tfr Y,D
+ 03D9 6E84              stx 4,S
+ 03DB E384              addd 4,S
+ 03DD B746              tfr D,Y
+ 03DF ED40              ldy 0,Y
+ 03E1 8D0000            cpy #0
+ 03E4 182700A8          lbeq L168
+ 03E8                   .dbline 393
+ 03E8           ;     {
+ 03E8                   .dbline 395
+ 03E8           ;       // Copy current process data
+ 03E8           ;       memcpy(&gTPDOConfig[i].CAN.BUF[0],&(gProcImg[gTPDOConfig[i].offset]),gTPDOConfig[i].CAN.LEN);
+ 03E8 E68C              ldab 12,S
+ 03EA 87                clra
+ 03EB B746              tfr D,Y
+ 03ED CC0016            ldd #22
+ 03F0 13                emul
+ 03F1 6C8A              std 10,S
+ 03F3 CD0052            ldy #_gTPDOConfig+2
+ 03F6 6D84              sty 4,S
+ 03F8 E384              addd 4,S
+ 03FA B746              tfr D,Y
+ 03FC E640              ldab 0,Y
+ 03FE 87                clra
+ 03FF 6C82              std 2,S
+ 0401 EC8A              ldd 10,S
+ 0403 CD0065            ldy #_gTPDOConfig+21
+ 0406 6D84              sty 4,S
+ 0408 E384              addd 4,S
+ 040A B746              tfr D,Y
+ 040C E640              ldab 0,Y
+ 040E 87                clra
+ 040F B746              tfr D,Y
+ 0411 CE0000            ldx #_gProcImg
+ 0414 B764              tfr Y,D
+ 0416 6E84              stx 4,S
+ 0418 E384              addd 4,S
+ 041A 6C80              std 0,S
+ 041C EC8A              ldd 10,S
+ 041E CD0054            ldy #_gTPDOConfig+4
+ 0421 6D84              sty 4,S
+ 0423 E384              addd 4,S
+ 0425 4A000000          xcall $_memcpy
+ 0429                   .dbline 398
+ 0429           ; #ifdef USE_EVENT_TIME
+ 0429           ;       // Reset event timer for immediate transmission
+ 0429           ;       gTPDOConfig[i].event_timestamp = MCOHW_GetTime() - 2;
+ 0429 4A000000          xcall $_MCOHW_GetTime
+ 042D B745              tfr D,X
+ 042F 6E88              stx 8,S
+ 0431 E68C              ldab 12,S
+ 0433 87                clra
+ 0434 B746              tfr D,Y
+ 0436 CC0016            ldd #22
+ 0439 13                emul
+ 043A B746              tfr D,Y
+ 043C CE005E            ldx #_gTPDOConfig+14
+ 043F B764              tfr Y,D
+ 0441 6E84              stx 4,S
+ 0443 E384              addd 4,S
+ 0445 B746              tfr D,Y
+ 0447 EC88              ldd 8,S
+ 0449 830002            subd #2
+ 044C B745              tfr D,X
+ 044E 6E40              stx 0,Y
+ 0450                   .dbline 401
+ 0450           ; #endif
+ 0450           ; #ifdef USE_INHIBIT_TIME
+ 0450           ;       gTPDOConfig[i].inhibit_status = 2; // Mark as ready for transmission
+ 0450 E68C              ldab 12,S
+ 0452 87                clra
+ 0453 B746              tfr D,Y
+ 0455 CC0016            ldd #22
+ 0458 13                emul
+ 0459 B746              tfr D,Y
+ 045B CE0064            ldx #_gTPDOConfig+20
+ 045E B764              tfr Y,D
+ 0460 6E84              stx 4,S
+ 0462 E384              addd 4,S
+ 0464 B746              tfr D,Y
+ 0466 CC0002            ldd #2
+ 0469 6B40              stab 0,Y
+ 046B                   .dbline 403
+ 046B           ;       // Reset inhibit timer for immediate transmission
+ 046B           ;       gTPDOConfig[i].inhibit_timestamp = MCOHW_GetTime() - 2;
+ 046B 4A000000          xcall $_MCOHW_GetTime
+ 046F B745              tfr D,X
+ 0471 6E86              stx 6,S
+ 0473 E68C              ldab 12,S
+ 0475 87                clra
+ 0476 B746              tfr D,Y
+ 0478 CC0016            ldd #22
+ 047B 13                emul
+ 047C B746              tfr D,Y
+ 047E CE0062            ldx #_gTPDOConfig+18
+ 0481 B764              tfr Y,D
+ 0483 6E84              stx 4,S
+ 0485 E384              addd 4,S
+ 0487 B746              tfr D,Y
+ 0489 EC86              ldd 6,S
+ 048B 830002            subd #2
+ 048E 6C40              std 0,Y
+ 0490                   .dbline 405
+ 0490           ; #endif
+ 0490           ;     }
+ 0490           L168:
+ 0490                   .dbline 406
+ 0490           ;   i++;
+ 0490 628C              inc 12,S
+ 0492                   .dbline 407
+ 0492           ;   }
+ 0492           L166:
+ 0492                   .dbline 389
+ 0492 E68C              ldab 12,S
+ 0494 C108              cmpb #8
+ 0496 1825FF2F          lblo L165
+ 049A                   .dbline 409
+ 049A           ;   // ensure that MCO_ProcessStack starts with TPDO1
+ 049A           ;   gTPDONr = NR_OF_TPDOS;
+ 049A 180B080002        movb #8,_gTPDONr
+ 049F                   .dbline -2
+ 049F           L164:
+ 049F                   .dbline 0 ; func end
+ 049F 1B8D              leas 13,S
+ 04A1 0A                rtc
+ 04A2                   .dbsym l i 12 c
+ 04A2                   .dbend
+ 04A2                   .dbfunc e MCO_TransmitPDO _MCO_TransmitPDO fV
+ 04A2           ;          PDONr -> 11,SP
+ 04A2           $_MCO_TransmitPDO::
+ 04A2 3B                pshd
+ 04A3 1B96              leas -10,S
+ 04A5                   .dbline -1
+ 04A5                   .dbline 420
+ 04A5           ; }
+ 04A5           ; 
+ 04A5           ; /**************************************************************************
+ 04A5           ; DOES:    Called when a TPDO needs to be transmitted
+ 04A5           ; RETURNS: nothing
+ 04A5           ; **************************************************************************/
+ 04A5           ; void MCO_TransmitPDO 
+ 04A5           ;   (
+ 04A5           ;   UNSIGNED8 PDONr  // TPDO number to transmit
+ 04A5           ;   )
+ 04A5           ; {
+ 04A5                   .dbline 423
+ 04A5           ; #ifdef USE_INHIBIT_TIME
+ 04A5           ;   // new inhibit timer started
+ 04A5           ;   gTPDOConfig[PDONr].inhibit_status = 1;
+ 04A5 E68B              ldab 11,S
+ 04A7 87                clra
+ 04A8 B746              tfr D,Y
+ 04AA CC0016            ldd #22
+ 04AD 13                emul
+ 04AE B746              tfr D,Y
+ 04B0 CE0064            ldx #_gTPDOConfig+20
+ 04B3 B764              tfr Y,D
+ 04B5 6E80              stx 0,S
+ 04B7 E380              addd 0,S
+ 04B9 B746              tfr D,Y
+ 04BB CC0001            ldd #1
+ 04BE 6B40              stab 0,Y
+ 04C0                   .dbline 424
+ 04C0           ;   gTPDOConfig[PDONr].inhibit_timestamp = MCOHW_GetTime() + gTPDOConfig[PDONr].inhibit_time;
+ 04C0 4A000000          xcall $_MCOHW_GetTime
+ 04C4 B745              tfr D,X
+ 04C6 6E88              stx 8,S
+ 04C8 E68B              ldab 11,S
+ 04CA 87                clra
+ 04CB B746              tfr D,Y
+ 04CD CC0016            ldd #22
+ 04D0 13                emul
+ 04D1 B746              tfr D,Y
+ 04D3 CE0060            ldx #_gTPDOConfig+16
+ 04D6 B764              tfr Y,D
+ 04D8 6E80              stx 0,S
+ 04DA E380              addd 0,S
+ 04DC B746              tfr D,Y
+ 04DE EC88              ldd 8,S
+ 04E0 E340              addd 0,Y
+ 04E2 B746              tfr D,Y
+ 04E4 6D86              sty 6,S
+ 04E6 E68B              ldab 11,S
+ 04E8 87                clra
+ 04E9 B745              tfr D,X
+ 04EB CC0016            ldd #22
+ 04EE B756              tfr X,Y
+ 04F0 13                emul
+ 04F1 B746              tfr D,Y
+ 04F3 CE0062            ldx #_gTPDOConfig+18
+ 04F6 B764              tfr Y,D
+ 04F8 6E80              stx 0,S
+ 04FA E380              addd 0,S
+ 04FC B746              tfr D,Y
+ 04FE EE86              ldx 6,S
+ 0500 6E40              stx 0,Y
+ 0502                   .dbline 427
+ 0502           ; #endif
+ 0502           ; #ifdef USE_EVENT_TIME
+ 0502           ;   gTPDOConfig[gTPDONr].event_timestamp = MCOHW_GetTime() + gTPDOConfig[gTPDONr].event_time; 
+ 0502 4A000000          xcall $_MCOHW_GetTime
+ 0506 B745              tfr D,X
+ 0508 6E84              stx 4,S
+ 050A F60002            ldab _gTPDONr
+ 050D 87                clra
+ 050E B746              tfr D,Y
+ 0510 CC0016            ldd #22
+ 0513 13                emul
+ 0514 B746              tfr D,Y
+ 0516 CE005C            ldx #_gTPDOConfig+12
+ 0519 B764              tfr Y,D
+ 051B 6E80              stx 0,S
+ 051D E380              addd 0,S
+ 051F B746              tfr D,Y
+ 0521 EC84              ldd 4,S
+ 0523 E340              addd 0,Y
+ 0525 B746              tfr D,Y
+ 0527 6D82              sty 2,S
+ 0529 F60002            ldab _gTPDONr
+ 052C 87                clra
+ 052D B745              tfr D,X
+ 052F CC0016            ldd #22
+ 0532 B756              tfr X,Y
+ 0534 13                emul
+ 0535 B746              tfr D,Y
+ 0537 CE005E            ldx #_gTPDOConfig+14
+ 053A B764              tfr Y,D
+ 053C 6E80              stx 0,S
+ 053E E380              addd 0,S
+ 0540 B746              tfr D,Y
+ 0542 EE82              ldx 2,S
+ 0544 6E40              stx 0,Y
+ 0546                   .dbline 429
+ 0546           ; #endif
+ 0546           ;   if (!MCOHW_PushMessage(&gTPDOConfig[PDONr].CAN))
+ 0546 E68B              ldab 11,S
+ 0548 87                clra
+ 0549 B746              tfr D,Y
+ 054B CC0016            ldd #22
+ 054E 13                emul
+ 054F B746              tfr D,Y
+ 0551 CE0050            ldx #_gTPDOConfig
+ 0554 B764              tfr Y,D
+ 0556 6E80              stx 0,S
+ 0558 E380              addd 0,S
+ 055A 4A000000          xcall $_MCOHW_PushMessage
+ 055E 87                clra
+ 055F C100              cmpb #0
+ 0561 2607              bne L182
+ 0563                   .dbline 430
+ 0563           ;   {
+ 0563                   .dbline 431
+ 0563           ;     MCOUSER_FatalError(0x8801);
+ 0563 CC8801            ldd #34817
+ 0566 4A000000          xcall $_MCOUSER_FatalError
+ 056A                   .dbline 432
+ 056A           ;   }
+ 056A           L182:
+ 056A                   .dbline -2
+ 056A           L176:
+ 056A                   .dbline 0 ; func end
+ 056A 1B8C              leas 12,S
+ 056C 0A                rtc
+ 056D                   .dbsym l PDONr 11 c
+ 056D                   .dbend
+ 056D                   .dbfunc e MCO_Init _MCO_Init fV
+ 056D           ;              i -> 4,SP
+ 056D           ;      Heartbeat -> 12,SP
+ 056D           ;        Node_ID -> 11,SP
+ 056D           ;       Baudrate -> 5,SP
+ 056D           $_MCO_Init::
+ 056D 3B                pshd
+ 056E 1B9B              leas -5,S
+ 0570                   .dbline -1
+ 0570                   .dbline 451
+ 0570           ; }
+ 0570           ; #endif // NR_OF_TPDOS > 0
+ 0570           ; 
+ 0570           ; /**************************************************************************
+ 0570           ; PUBLIC FUNCTIONS
+ 0570           ; ***************************************************************************/ 
+ 0570           ; 
+ 0570           ; /**************************************************************************
+ 0570           ; DOES:    Initializes the MicroCANopen stack
+ 0570           ;          It must be called from within MCOUSER_ResetApplication
+ 0570           ; RETURNS: nothing
+ 0570           ; **************************************************************************/
+ 0570           ; void MCO_Init 
+ 0570           ;   (
+ 0570           ;   UNSIGNED16 Baudrate,  // CAN baudrate in kbit (1000,800,500,250,125,50,25 or 10)
+ 0570           ;   UNSIGNED8 Node_ID,   // CANopen node ID (1-126)
+ 0570           ;   UNSIGNED16 Heartbeat  // Heartbeat time in ms (0 for none)
+ 0570           ;   )
+ 0570           ; {
+ 0570                   .dbline 455
+ 0570           ;   UNSIGNED8 i;
+ 0570           ; 
+ 0570           ;   // Init the global variables
+ 0570           ;   gMCOConfig.Node_ID = Node_ID;
+ 0570 180D8B0112        movb 11,S,_gMCOConfig+18
+ 0575                   .dbline 456
+ 0575           ;   gMCOConfig.error_code = 0;
+ 0575 790113            clr _gMCOConfig+19
+ 0578                   .dbline 457
+ 0578           ;   gMCOConfig.Baudrate = Baudrate;
+ 0578 180585010C        movw 5,S,_gMCOConfig+12
+ 057D                   .dbline 458
+ 057D           ;   gMCOConfig.heartbeat_time = Heartbeat;
+ 057D 18058C010E        movw 12,S,_gMCOConfig+14
+ 0582                   .dbline 459
+ 0582           ;   gMCOConfig.heartbeat_msg.ID = 0x700+Node_ID;
+ 0582 E68B              ldab 11,S
+ 0584 87                clra
+ 0585 C30700            addd #1792
+ 0588 B746              tfr D,Y
+ 058A 7D0100            sty _gMCOConfig
+ 058D                   .dbline 460
+ 058D           ;   gMCOConfig.heartbeat_msg.LEN = 1;
+ 058D 180B010102        movb #1,_gMCOConfig+2
+ 0592                   .dbline 462
+ 0592           ;   // current NMT state of this node = bootup
+ 0592           ;   gMCOConfig.heartbeat_msg.BUF[0] = 0;
+ 0592 790104            clr _gMCOConfig+4
+ 0595                   .dbline 463
+ 0595           ;   gMCOConfig.error_register = 0;
+ 0595 790114            clr _gMCOConfig+20
+ 0598                   .dbline 466
+ 0598           ;  
+ 0598           ;   // Init SDO Response/Abort message
+ 0598           ;   gTxSDO.ID = 0x580+gMCOConfig.Node_ID;
+ 0598 F60112            ldab _gMCOConfig+18
+ 059B 87                clra
+ 059C C30580            addd #1408
+ 059F 7C0018            std _gTxSDO
+ 05A2                   .dbline 467
+ 05A2           ;   gTxSDO.LEN = 8;
+ 05A2 180B08001A        movb #8,_gTxSDO+2
+ 05A7                   .dbline 470
+ 05A7           ;    
+ 05A7           ; #if NR_OF_TPDOS > 0
+ 05A7           ;   i = 0;
+ 05A7 6984              clr 4,S
+ 05A9 201D              bra L195
+ 05AB           L194:
+ 05AB                   .dbline 473
+ 05AB           ;   // init TPDOs
+ 05AB           ;   while (i < NR_OF_TPDOS)
+ 05AB           ;   {
+ 05AB                   .dbline 474
+ 05AB           ;     gTPDOConfig[i].CAN.ID = 0;
+ 05AB E684              ldab 4,S
+ 05AD 87                clra
+ 05AE B746              tfr D,Y
+ 05B0 CC0016            ldd #22
+ 05B3 13                emul
+ 05B4 B746              tfr D,Y
+ 05B6 CE0050            ldx #_gTPDOConfig
+ 05B9 B764              tfr Y,D
+ 05BB 6E82              stx 2,S
+ 05BD E382              addd 2,S
+ 05BF B746              tfr D,Y
+ 05C1 CE0000            ldx #0
+ 05C4 6E40              stx 0,Y
+ 05C6                   .dbline 475
+ 05C6           ;     i++;
+ 05C6 6284              inc 4,S
+ 05C8                   .dbline 476
+ 05C8           ;   }
+ 05C8           L195:
+ 05C8                   .dbline 472
+ 05C8 E684              ldab 4,S
+ 05CA C108              cmpb #8
+ 05CC 25DD              blo L194
+ 05CE                   .dbline 479
+ 05CE           ; #endif
+ 05CE           ; #if NR_OF_RPDOS > 0
+ 05CE           ;   i = 0;
+ 05CE 6984              clr 4,S
+ 05D0 2015              bra L198
+ 05D2           L197:
+ 05D2                   .dbline 482
+ 05D2           ;   // init RPDOs
+ 05D2           ;   while (i < NR_OF_RPDOS)
+ 05D2           ;   {
+ 05D2                   .dbline 483
+ 05D2           ;     gRPDOConfig[i].CANID = 0;
+ 05D2 CD0030            ldy #_gRPDOConfig
+ 05D5 E684              ldab 4,S
+ 05D7 87                clra
+ 05D8 59                lsld
+ 05D9 59                lsld
+ 05DA 6D82              sty 2,S
+ 05DC E382              addd 2,S
+ 05DE B746              tfr D,Y
+ 05E0 CE0000            ldx #0
+ 05E3 6E40              stx 0,Y
+ 05E5                   .dbline 484
+ 05E5           ;     i++;
+ 05E5 6284              inc 4,S
+ 05E7                   .dbline 485
+ 05E7           ;   }
+ 05E7           L198:
+ 05E7                   .dbline 481
+ 05E7 E684              ldab 4,S
+ 05E9 C108              cmpb #8
+ 05EB 25E5              blo L197
+ 05ED                   .dbline 489
+ 05ED           ; #endif
+ 05ED           ; 
+ 05ED           ;   // init the CAN interface
+ 05ED           ;   if (!MCOHW_Init(Baudrate))
+ 05ED EC85              ldd 5,S
+ 05EF 4A000000          xcall $_MCOHW_Init
+ 05F3 87                clra
+ 05F4 C100              cmpb #0
+ 05F6 2607              bne L200
+ 05F8                   .dbline 490
+ 05F8           ;   {
+ 05F8                   .dbline 491
+ 05F8           ;     MCOUSER_FatalError(0x8802);
+ 05F8 CC8802            ldd #34818
+ 05FB 4A000000          xcall $_MCOUSER_FatalError
+ 05FF                   .dbline 492
+ 05FF           ;   }
+ 05FF           L200:
+ 05FF                   .dbline 494
+ 05FF           ;   // for nmt master message
+ 05FF           ;   if (!MCOHW_SetCANFilter(0))
+ 05FF CD0000            ldy #0
+ 0602 6D80              sty 0,S
+ 0604 4A000000          xcall $_MCOHW_SetCANFilter
+ 0608 87                clra
+ 0609 C100              cmpb #0
+ 060B 2607              bne L202
+ 060D                   .dbline 495
+ 060D           ;   {
+ 060D                   .dbline 496
+ 060D           ;     MCOUSER_FatalError(0x8803);
+ 060D CC8803            ldd #34819
+ 0610 4A000000          xcall $_MCOUSER_FatalError
+ 0614                   .dbline 497
+ 0614           ;   }
+ 0614           L202:
+ 0614                   .dbline 499
+ 0614           ;   // for SDO requests
+ 0614           ;   if (!MCOHW_SetCANFilter(0x600+Node_ID))
+ 0614 E68B              ldab 11,S
+ 0616 87                clra
+ 0617 C30600            addd #1536
+ 061A 6C80              std 0,S
+ 061C 4A000000          xcall $_MCOHW_SetCANFilter
+ 0620 87                clra
+ 0621 C100              cmpb #0
+ 0623 2607              bne L204
+ 0625                   .dbline 500
+ 0625           ;   {
+ 0625                   .dbline 501
+ 0625           ;     MCOUSER_FatalError(0x8803);
+ 0625 CC8803            ldd #34819
+ 0628 4A000000          xcall $_MCOUSER_FatalError
+ 062C                   .dbline 502
+ 062C           ;   }
+ 062C           L204:
+ 062C                   .dbline 505
+ 062C           ; 
+ 062C           ;   // signal to MCO_ProcessStack: we just initialized
+ 062C           ;   gTPDONr = 0xFF;
+ 062C 180BFF0002        movb #255,_gTPDONr
+ 0631                   .dbline -2
+ 0631           L184:
+ 0631                   .dbline 0 ; func end
+ 0631 1B87              leas 7,S
+ 0633 0A                rtc
+ 0634                   .dbsym l i 4 c
+ 0634                   .dbsym l Heartbeat 12 i
+ 0634                   .dbsym l Node_ID 11 c
+ 0634                   .dbsym l Baudrate 5 i
+ 0634                   .dbend
+ 0634                   .dbfunc e MCO_InitRPDO _MCO_InitRPDO fV
+ 0634           ;         offset -> 16,SP
+ 0634           ;            len -> 14,SP
+ 0634           ;         CAN_ID -> 11,SP
+ 0634           ;         PDO_NR -> 7,SP
+ 0634           $_MCO_InitRPDO::
+ 0634 3B                pshd
+ 0635 1B9A              leas -6,S
+ 0637                   .dbline -1
+ 0637                   .dbline 523
+ 0637           ; }  
+ 0637           ; 
+ 0637           ; #if NR_OF_RPDOS > 0
+ 0637           ; /**************************************************************************
+ 0637           ; DOES:    This function initializes a receive PDO. Once initialized, the 
+ 0637           ;          MicroCANopen stack automatically updates the data at offset.
+ 0637           ; NOTE:    For data consistency, the application should not read the data
+ 0637           ;          while function MCO_ProcessStack executes.
+ 0637           ; RETURNS: nothing
+ 0637           ; **************************************************************************/
+ 0637           ; void MCO_InitRPDO
+ 0637           ;   (
+ 0637           ;   UNSIGNED8 PDO_NR,       // RPDO number (1-4)
+ 0637           ;   UNSIGNED16 CAN_ID,       // CAN identifier to be used (set to 0 to use default)
+ 0637           ;   UNSIGNED8 len,          // Number of data bytes in RPDO
+ 0637           ;   UNSIGNED8 offset        // Offset to data location in process image
+ 0637           ;   )
+ 0637           ; {
+ 0637                   .dbline 527
+ 0637           ; 
+ 0637           ; #ifdef CHECK_PARAMETERS
+ 0637           ;   // check PDO range and check node id range 1 - 127
+ 0637           ;   if (((PDO_NR < 1)             || (PDO_NR > NR_OF_RPDOS))      || 
+ 0637 E687              ldab 7,S
+ 0639 C101              cmpb #1
+ 063B 2514              blo L212
+ 063D E687              ldab 7,S
+ 063F C108              cmpb #8
+ 0641 220E              bhi L212
+ 0643 F60112            ldab _gMCOConfig+18
+ 0646 C101              cmpb #1
+ 0648 2507              blo L212
+ 064A F60112            ldab _gMCOConfig+18
+ 064D C17F              cmpb #127
+ 064F 2307              bls L207
+ 0651           L212:
+ 0651                   .dbline 529
+ 0651           ;       ((gMCOConfig.Node_ID < 1) || (gMCOConfig.Node_ID > 127)))
+ 0651           ;   {
+ 0651                   .dbline 530
+ 0651           ;     MCOUSER_FatalError(0x8804);
+ 0651 CC8804            ldd #34820
+ 0654 4A000000          xcall $_MCOUSER_FatalError
+ 0658                   .dbline 531
+ 0658           ;   }
+ 0658           L207:
+ 0658                   .dbline 533
+ 0658           ;   // is size of process image exceeded?
+ 0658           ;   if (offset >= PROCIMG_SIZE)   
+ 0658 E6F010            ldab 16,S
+ 065B C130              cmpb #48
+ 065D 2507              blo L213
+ 065F                   .dbline 534
+ 065F           ;   { 
+ 065F                   .dbline 535
+ 065F           ;     MCOUSER_FatalError(0x8904);
+ 065F CC8904            ldd #35076
+ 0662 4A000000          xcall $_MCOUSER_FatalError
+ 0666                   .dbline 536
+ 0666           ;   }
+ 0666           L213:
+ 0666                   .dbline 538
+ 0666           ; #endif
+ 0666           ;   PDO_NR--;
+ 0666 6387              dec 7,S
+ 0668                   .dbline 539
+ 0668           ;   gRPDOConfig[PDO_NR].len = len;
+ 0668 CD0032            ldy #_gRPDOConfig+2
+ 066B E687              ldab 7,S
+ 066D 87                clra
+ 066E 59                lsld
+ 066F 59                lsld
+ 0670 6D82              sty 2,S
+ 0672 E382              addd 2,S
+ 0674 B746              tfr D,Y
+ 0676 E68E              ldab 14,S
+ 0678 6B40              stab 0,Y
+ 067A                   .dbline 540
+ 067A           ;   gRPDOConfig[PDO_NR].offset = offset;
+ 067A CD0033            ldy #_gRPDOConfig+3
+ 067D E687              ldab 7,S
+ 067F 87                clra
+ 0680 59                lsld
+ 0681 59                lsld
+ 0682 6D82              sty 2,S
+ 0684 E382              addd 2,S
+ 0686 B746              tfr D,Y
+ 0688 E6F010            ldab 16,S
+ 068B 6B40              stab 0,Y
+ 068D                   .dbline 541
+ 068D           ;   if (CAN_ID == 0)
+ 068D ED8B              ldy 11,S
+ 068F 8D0000            cpy #0
+ 0692 2632              bne L217
+ 0694                   .dbline 542
+ 0694           ;   {
+ 0694                   .dbline 543
+ 0694           ;     gRPDOConfig[PDO_NR].CANID = 0x200 + (0x100 * ((UNSIGNED16)(PDO_NR))) + gMCOConfig.Node_ID;
+ 0694 E687              ldab 7,S
+ 0696 87                clra
+ 0697 B746              tfr D,Y
+ 0699 CC0100            ldd #256
+ 069C 13                emul
+ 069D C30200            addd #512
+ 06A0 B746              tfr D,Y
+ 06A2 F60112            ldab _gMCOConfig+18
+ 06A5 87                clra
+ 06A6 B745              tfr D,X
+ 06A8 B764              tfr Y,D
+ 06AA 6E82              stx 2,S
+ 06AC E382              addd 2,S
+ 06AE B746              tfr D,Y
+ 06B0 6D84              sty 4,S
+ 06B2 CE0030            ldx #_gRPDOConfig
+ 06B5 E687              ldab 7,S
+ 06B7 87                clra
+ 06B8 59                lsld
+ 06B9 59                lsld
+ 06BA 6E82              stx 2,S
+ 06BC E382              addd 2,S
+ 06BE B746              tfr D,Y
+ 06C0 EE84              ldx 4,S
+ 06C2 6E40              stx 0,Y
+ 06C4                   .dbline 544
+ 06C4           ;   }
+ 06C4 2012              bra L218
+ 06C6           L217:
+ 06C6                   .dbline 546
+ 06C6           ;   else
+ 06C6           ;   {
+ 06C6                   .dbline 547
+ 06C6           ;     gRPDOConfig[PDO_NR].CANID = CAN_ID;
+ 06C6 CD0030            ldy #_gRPDOConfig
+ 06C9 E687              ldab 7,S
+ 06CB 87                clra
+ 06CC 59                lsld
+ 06CD 59                lsld
+ 06CE 6D82              sty 2,S
+ 06D0 E382              addd 2,S
+ 06D2 B746              tfr D,Y
+ 06D4 EE8B              ldx 11,S
+ 06D6 6E40              stx 0,Y
+ 06D8                   .dbline 548
+ 06D8           ;   }
+ 06D8           L218:
+ 06D8                   .dbline 549
+ 06D8           ;   if (!MCOHW_SetCANFilter(gRPDOConfig[PDO_NR].CANID))
+ 06D8 CD0030            ldy #_gRPDOConfig
+ 06DB E687              ldab 7,S
+ 06DD 87                clra
+ 06DE 59                lsld
+ 06DF 59                lsld
+ 06E0 6D82              sty 2,S
+ 06E2 E382              addd 2,S
+ 06E4 B746              tfr D,Y
+ 06E6 ED40              ldy 0,Y
+ 06E8 6D80              sty 0,S
+ 06EA 4A000000          xcall $_MCOHW_SetCANFilter
+ 06EE 87                clra
+ 06EF C100              cmpb #0
+ 06F1 2607              bne L220
+ 06F3                   .dbline 550
+ 06F3           ;   {
+ 06F3                   .dbline 551
+ 06F3           ;     MCOUSER_FatalError(0x8805);
+ 06F3 CC8805            ldd #34821
+ 06F6 4A000000          xcall $_MCOUSER_FatalError
+ 06FA                   .dbline 552
+ 06FA           ;   }
+ 06FA           L220:
+ 06FA                   .dbline -2
+ 06FA           L206:
+ 06FA                   .dbline 0 ; func end
+ 06FA 1B88              leas 8,S
+ 06FC 0A                rtc
+ 06FD                   .dbsym l offset 16 c
+ 06FD                   .dbsym l len 14 c
+ 06FD                   .dbsym l CAN_ID 11 i
+ 06FD                   .dbsym l PDO_NR 7 c
+ 06FD                   .dbend
+ 06FD                   .dbfunc e MCO_InitTPDO _MCO_InitTPDO fV
+ 06FD           ;         offset -> 18,SP
+ 06FD           ;            len -> 16,SP
+ 06FD           ;   inhibit_time -> 13,SP
+ 06FD           ;     event_time -> 11,SP
+ 06FD           ;         CAN_ID -> 9,SP
+ 06FD           ;         PDO_NR -> 5,SP
+ 06FD           $_MCO_InitTPDO::
+ 06FD 3B                pshd
+ 06FE 1B9C              leas -4,S
+ 0700                   .dbline -1
+ 0700                   .dbline 576
+ 0700           ; }
+ 0700           ; #endif // NR_OF_RPDOS > 0
+ 0700           ; 
+ 0700           ; 
+ 0700           ; #if NR_OF_TPDOS > 0
+ 0700           ; /**************************************************************************
+ 0700           ; DOES:    This function initializes a transmit PDO. Once initialized, the 
+ 0700           ;          MicroCANopen stack automatically handles transmitting the PDO.
+ 0700           ;          The application can directly change the data at any time.
+ 0700           ; NOTE:    For data consistency, the application should not write to the data
+ 0700           ;          while function MCO_ProcessStack executes.
+ 0700           ; RETURNS: nothing
+ 0700           ; **************************************************************************/
+ 0700           ; void MCO_InitTPDO
+ 0700           ;   (
+ 0700           ;   UNSIGNED8 PDO_NR,        // TPDO number (1-4)
+ 0700           ;   UNSIGNED16 CAN_ID,        // CAN identifier to be used (set to 0 to use default)
+ 0700           ;   UNSIGNED16 event_time,    // Transmitted every event_tim ms 
+ 0700           ;   UNSIGNED16 inhibit_time,  // Inhibit time in ms for change-of-state transmit
+ 0700           ;                       // (set to 0 if ONLY event_tim should be used)
+ 0700           ;   UNSIGNED8 len,           // Number of data bytes in TPDO
+ 0700           ;   UNSIGNED8 offset         // Offset to data location in process image
+ 0700           ;   )
+ 0700           ; {
+ 0700                   .dbline 580
+ 0700           ; 
+ 0700           ; #ifdef CHECK_PARAMETERS
+ 0700           ;   // check PDO range, node id, len range 1 - 8 and event time or inhibit time set
+ 0700           ;   if (((PDO_NR < 1)             || (PDO_NR > NR_OF_TPDOS))     ||
+ 0700 E685              ldab 5,S
+ 0702 C101              cmpb #1
+ 0704 2530              blo L229
+ 0706 E685              ldab 5,S
+ 0708 C108              cmpb #8
+ 070A 222A              bhi L229
+ 070C F60112            ldab _gMCOConfig+18
+ 070F C101              cmpb #1
+ 0711 2523              blo L229
+ 0713 F60112            ldab _gMCOConfig+18
+ 0716 C17F              cmpb #127
+ 0718 221C              bhi L229
+ 071A E6F010            ldab 16,S
+ 071D C101              cmpb #1
+ 071F 2515              blo L229
+ 0721 E6F010            ldab 16,S
+ 0724 C108              cmpb #8
+ 0726 220E              bhi L229
+ 0728 ED8B              ldy 11,S
+ 072A 8D0000            cpy #0
+ 072D 260E              bne L223
+ 072F ED8D              ldy 13,S
+ 0731 8D0000            cpy #0
+ 0734 2607              bne L223
+ 0736           L229:
+ 0736                   .dbline 584
+ 0736           ;       ((gMCOConfig.Node_ID < 1) || (gMCOConfig.Node_ID > 127)) ||
+ 0736           ;       ((len < 1)                || (len > 8))                  ||
+ 0736           ;       ((event_time == 0)        && (inhibit_time == 0)))
+ 0736           ;   {
+ 0736                   .dbline 585
+ 0736           ;     MCOUSER_FatalError(0x8806);
+ 0736 CC8806            ldd #34822
+ 0739 4A000000          xcall $_MCOUSER_FatalError
+ 073D                   .dbline 586
+ 073D           ;   }
+ 073D           L223:
+ 073D                   .dbline 588
+ 073D           ;   // is size of process image exceeded?
+ 073D           ;   if (offset >= PROCIMG_SIZE)   
+ 073D E6F012            ldab 18,S
+ 0740 C130              cmpb #48
+ 0742 2507              blo L230
+ 0744                   .dbline 589
+ 0744           ;   { 
+ 0744                   .dbline 590
+ 0744           ;     MCOUSER_FatalError(0x8906);
+ 0744 CC8906            ldd #35078
+ 0747 4A000000          xcall $_MCOUSER_FatalError
+ 074B                   .dbline 591
+ 074B           ;   }
+ 074B           L230:
+ 074B                   .dbline 593
+ 074B           ; #endif
+ 074B           ;   PDO_NR--;
+ 074B 6385              dec 5,S
+ 074D                   .dbline 594
+ 074D           ;   if (CAN_ID == 0)
+ 074D ED89              ldy 9,S
+ 074F 8D0000            cpy #0
+ 0752 263C              bne L232
+ 0754                   .dbline 595
+ 0754           ;   {
+ 0754                   .dbline 596
+ 0754           ;     gTPDOConfig[PDO_NR].CAN.ID = 0x180 + (0x100 * ((UNSIGNED16)(PDO_NR))) + gMCOConfig.Node_ID;
+ 0754 E685              ldab 5,S
+ 0756 87                clra
+ 0757 B746              tfr D,Y
+ 0759 CC0100            ldd #256
+ 075C 13                emul
+ 075D C30180            addd #384
+ 0760 B746              tfr D,Y
+ 0762 F60112            ldab _gMCOConfig+18
+ 0765 87                clra
+ 0766 B745              tfr D,X
+ 0768 B764              tfr Y,D
+ 076A 6E80              stx 0,S
+ 076C E380              addd 0,S
+ 076E B746              tfr D,Y
+ 0770 6D82              sty 2,S
+ 0772 E685              ldab 5,S
+ 0774 87                clra
+ 0775 B745              tfr D,X
+ 0777 CC0016            ldd #22
+ 077A B756              tfr X,Y
+ 077C 13                emul
+ 077D B746              tfr D,Y
+ 077F CE0050            ldx #_gTPDOConfig
+ 0782 B764              tfr Y,D
+ 0784 6E80              stx 0,S
+ 0786 E380              addd 0,S
+ 0788 B746              tfr D,Y
+ 078A EE82              ldx 2,S
+ 078C 6E40              stx 0,Y
+ 078E                   .dbline 597
+ 078E           ;   }
+ 078E 201A              bra L233
+ 0790           L232:
+ 0790                   .dbline 599
+ 0790           ;   else
+ 0790           ;   {
+ 0790                   .dbline 600
+ 0790           ;     gTPDOConfig[PDO_NR].CAN.ID = CAN_ID;
+ 0790 E685              ldab 5,S
+ 0792 87                clra
+ 0793 B746              tfr D,Y
+ 0795 CC0016            ldd #22
+ 0798 13                emul
+ 0799 B746              tfr D,Y
+ 079B CE0050            ldx #_gTPDOConfig
+ 079E B764              tfr Y,D
+ 07A0 6E80              stx 0,S
+ 07A2 E380              addd 0,S
+ 07A4 B746              tfr D,Y
+ 07A6 EE89              ldx 9,S
+ 07A8 6E40              stx 0,Y
+ 07AA                   .dbline 601
+ 07AA           ;   }
+ 07AA           L233:
+ 07AA                   .dbline 602
+ 07AA           ;   gTPDOConfig[PDO_NR].CAN.LEN = len;
+ 07AA E685              ldab 5,S
+ 07AC 87                clra
+ 07AD B746              tfr D,Y
+ 07AF CC0016            ldd #22
+ 07B2 13                emul
+ 07B3 B746              tfr D,Y
+ 07B5 CE0052            ldx #_gTPDOConfig+2
+ 07B8 B764              tfr Y,D
+ 07BA 6E80              stx 0,S
+ 07BC E380              addd 0,S
+ 07BE B746              tfr D,Y
+ 07C0 E6F010            ldab 16,S
+ 07C3 6B40              stab 0,Y
+ 07C5                   .dbline 603
+ 07C5           ;   gTPDOConfig[PDO_NR].offset = offset;
+ 07C5 E685              ldab 5,S
+ 07C7 87                clra
+ 07C8 B746              tfr D,Y
+ 07CA CC0016            ldd #22
+ 07CD 13                emul
+ 07CE B746              tfr D,Y
+ 07D0 CE0065            ldx #_gTPDOConfig+21
+ 07D3 B764              tfr Y,D
+ 07D5 6E80              stx 0,S
+ 07D7 E380              addd 0,S
+ 07D9 B746              tfr D,Y
+ 07DB E6F012            ldab 18,S
+ 07DE 6B40              stab 0,Y
+ 07E0                   .dbline 605
+ 07E0           ; #ifdef USE_EVENT_TIME
+ 07E0           ;   gTPDOConfig[PDO_NR].event_time = event_time;
+ 07E0 E685              ldab 5,S
+ 07E2 87                clra
+ 07E3 B746              tfr D,Y
+ 07E5 CC0016            ldd #22
+ 07E8 13                emul
+ 07E9 B746              tfr D,Y
+ 07EB CE005C            ldx #_gTPDOConfig+12
+ 07EE B764              tfr Y,D
+ 07F0 6E80              stx 0,S
+ 07F2 E380              addd 0,S
+ 07F4 B746              tfr D,Y
+ 07F6 EE8B              ldx 11,S
+ 07F8 6E40              stx 0,Y
+ 07FA                   .dbline 608
+ 07FA           ; #endif
+ 07FA           ; #ifdef USE_INHIBIT_TIME
+ 07FA           ;   gTPDOConfig[PDO_NR].inhibit_time = inhibit_time;
+ 07FA E685              ldab 5,S
+ 07FC 87                clra
+ 07FD B746              tfr D,Y
+ 07FF CC0016            ldd #22
+ 0802 13                emul
+ 0803 B746              tfr D,Y
+ 0805 CE0060            ldx #_gTPDOConfig+16
+ 0808 B764              tfr Y,D
+ 080A 6E80              stx 0,S
+ 080C E380              addd 0,S
+ 080E B746              tfr D,Y
+ 0810 EE8D              ldx 13,S
+ 0812 6E40              stx 0,Y
+ 0814                   .dbline -2
+ 0814           L222:
+ 0814                   .dbline 0 ; func end
+ 0814 1B86              leas 6,S
+ 0816 0A                rtc
+ 0817                   .dbsym l offset 18 c
+ 0817                   .dbsym l len 16 c
+ 0817                   .dbsym l inhibit_time 13 i
+ 0817                   .dbsym l event_time 11 i
+ 0817                   .dbsym l CAN_ID 9 i
+ 0817                   .dbsym l PDO_NR 5 c
+ 0817                   .dbend
+ 0817                   .dbfunc e MCO_ProcessStack _MCO_ProcessStack fc
+ 0817           ;        ret_val -> 18,SP
+ 0817           ;              i -> 19,SP
+ 0817           $_MCO_ProcessStack::
+ 0817 1BF1EC            leas -20,S
+ 081A                   .dbline -1
+ 081A                   .dbline 625
+ 081A           ; #endif
+ 081A           ; }
+ 081A           ; #endif // NR_OF_TPDOS > 0
+ 081A           ; 
+ 081A           ; 
+ 081A           ; /**************************************************************************
+ 081A           ; DOES:    This function implements the main MicroCANopen protocol stack. 
+ 081A           ;          It must be called frequently to ensure proper operation of the
+ 081A           ;          communication stack. 
+ 081A           ;          Typically it is called from the while(1) loop in main.
+ 081A           ; RETURNS: 0 if nothing was done, 1 if a CAN message was sent or received
+ 081A           ; **************************************************************************/
+ 081A           ; UNSIGNED8 MCO_ProcessStack
+ 081A           ;   (
+ 081A           ;   void
+ 081A           ;   )
+ 081A           ; {
+ 081A                   .dbline 627
+ 081A           ;   UNSIGNED8 i;
+ 081A           ;   UNSIGNED8 ret_val = 0;
+ 081A 69F012            clr 18,S
+ 081D                   .dbline 629
+ 081D           ; 
+ 081D           ;   if (Gen_Flags & Gen_Flags_No2Wire)
+ 081D 1F00002007        brclr _Gen_Flags,#32,L240
+ 0822                   .dbline 630
+ 0822           ;     No2WireCnt++;
+ 0822 FD0000            ldy _No2WireCnt
+ 0825 02                iny
+ 0826 7D0000            sty _No2WireCnt
+ 0829           L240:
+ 0829                   .dbline 632
+ 0829           ; 
+ 0829           ;   if (No2WireCnt > 2)
+ 0829 FD0000            ldy _No2WireCnt
+ 082C 8D0002            cpy #2
+ 082F 2F04              ble L242
+ 0831                   .dbline 633
+ 0831           ;   {
+ 0831                   .dbline 634
+ 0831           ;     InitCANopen();
+ 0831 4A000000          xcall $_InitCANopen
+ 0835                   .dbline 635
+ 0835           ;   }
+ 0835           L242:
+ 0835                   .dbline 639
+ 0835           ; 
+ 0835           ;   // check if this is right after boot-up
+ 0835           ;   // was set by MCO_Init
+ 0835           ;   if (gTPDONr == 0xFF)
+ 0835 F60002            ldab _gTPDONr
+ 0838 C1FF              cmpb #255
+ 083A 2632              bne L244
+ 083C                   .dbline 640
+ 083C           ;   {
+ 083C                   .dbline 642
+ 083C           ;     // init heartbeat time
+ 083C           ;     gMCOConfig.heartbeat_timestamp = MCOHW_GetTime() + gMCOConfig.heartbeat_time;
+ 083C 4A000000          xcall $_MCOHW_GetTime
+ 0840 F3010E            addd _gMCOConfig+14
+ 0843 7C0110            std _gMCOConfig+16
+ 0846                   .dbline 644
+ 0846           ;     // send boot-up message  
+ 0846           ;     if (!MCOHW_PushMessage(&gMCOConfig.heartbeat_msg))
+ 0846 CC0100            ldd #_gMCOConfig
+ 0849 4A000000          xcall $_MCOHW_PushMessage
+ 084D 87                clra
+ 084E C100              cmpb #0
+ 0850 2607              bne L248
+ 0852                   .dbline 645
+ 0852           ;     {
+ 0852                   .dbline 646
+ 0852           ;       MCOUSER_FatalError(0x8801);
+ 0852 CC8801            ldd #34817
+ 0855 4A000000          xcall $_MCOUSER_FatalError
+ 0859                   .dbline 647
+ 0859           ;     }
+ 0859           L248:
+ 0859                   .dbline 650
+ 0859           ; #ifdef AUTOSTART
+ 0859           ;     // going into operational state
+ 0859           ;     gMCOConfig.heartbeat_msg.BUF[0] = 0x05;
+ 0859 180B050104        movb #5,_gMCOConfig+4
+ 085E                   .dbline 652
+ 085E           ; #if NR_OF_TPDOS > 0
+ 085E           ;     MCO_Prepare_TPDOs();
+ 085E 4A03C1C1          xcall $_MCO_Prepare_TPDOs
+ 0862                   .dbline 659
+ 0862           ; #endif
+ 0862           ; #else
+ 0862           ;     // going into pre-operational state
+ 0862           ;     gMCOConfig.heartbeat_msg.BUF[0] = 0x7F;
+ 0862           ; #endif
+ 0862           ;     // return value to default
+ 0862           ;     gTPDONr = NR_OF_TPDOS;
+ 0862 180B080002        movb #8,_gTPDONr
+ 0867                   .dbline 660
+ 0867           ;     return 1;
+ 0867 CC0001            ldd #1
+ 086A 182003B3          lbra L239
+ 086E           L244:
+ 086E                   .dbline 665
+ 086E           ;   }
+ 086E           ;  
+ 086E           ;   // work on next incoming messages
+ 086E           ;   // if message received
+ 086E           ;   if (MCOHW_PullMessage(&gRxCAN))
+ 086E CC0024            ldd #_gRxCAN
+ 0871 4A000000          xcall $_MCOHW_PullMessage
+ 0875 87                clra
+ 0876 C100              cmpb #0
+ 0878 18270117          lbeq L251
+ 087C                   .dbline 666
+ 087C           ;   {
+ 087C                   .dbline 668
+ 087C           ;       // is it an NMT master message?
+ 087C           ;     if (gRxCAN.ID == 0)
+ 087C FD0024            ldy _gRxCAN
+ 087F 8D0000            cpy #0
+ 0882 18260071          lbne L253
+ 0886                   .dbline 669
+ 0886           ;     {
+ 0886                   .dbline 671
+ 0886           ;       // nmt message is for this node or all nodes
+ 0886           ;       if ((gRxCAN.BUF[1] == gMCOConfig.Node_ID) || (gRxCAN.BUF[1] == 0))
+ 0886 F60029            ldab _gRxCAN+4+1
+ 0889 F10112            cmpb _gMCOConfig+18
+ 088C 2707              beq L262
+ 088E F60029            ldab _gRxCAN+4+1
+ 0891 C100              cmpb #0
+ 0893 2662              bne L255
+ 0895           L262:
+ 0895                   .dbline 672
+ 0895           ;       {
+ 0895                   .dbline 673
+ 0895           ;         switch (gRxCAN.BUF[0])
+ 0895 F60028            ldab _gRxCAN+4
+ 0898 87                clra
+ 0899 6CF010            std 16,S
+ 089C 8C0001            cpd #1
+ 089F 272A              beq L267
+ 08A1 EDF010            ldy 16,S
+ 08A4 8D0002            cpy #2
+ 08A7 272D              beq L269
+ 08A9 EDF010            ldy 16,S
+ 08AC 8D0001            cpy #1
+ 08AF 2D3F              blt L264
+ 08B1           L275:
+ 08B1 EDF010            ldy 16,S
+ 08B4 8D0080            cpy #128
+ 08B7 2724              beq L271
+ 08B9 EDF010            ldy 16,S
+ 08BC 8D0081            cpy #129
+ 08BF 2723              beq L273
+ 08C1 EDF010            ldy 16,S
+ 08C4 8D0082            cpy #130
+ 08C7 2721              beq L274
+ 08C9 2025              bra L264
+ 08CB           L267:
+ 08CB                   .dbline 677
+ 08CB           ;         {
+ 08CB           ;           // start node
+ 08CB           ;           case 1:
+ 08CB           ;             gMCOConfig.heartbeat_msg.BUF[0] = 5;
+ 08CB 180B050104        movb #5,_gMCOConfig+4
+ 08D0                   .dbline 679
+ 08D0           ; #if NR_OF_TPDOS > 0          
+ 08D0           ;             MCO_Prepare_TPDOs();
+ 08D0 4A03C1C1          xcall $_MCO_Prepare_TPDOs
+ 08D4                   .dbline 681
+ 08D4           ; #endif
+ 08D4           ;             break;
+ 08D4 201A              bra L264
+ 08D6           L269:
+ 08D6                   .dbline 685
+ 08D6           ; 
+ 08D6           ;           // stop node
+ 08D6           ;           case 2:
+ 08D6           ;             gMCOConfig.heartbeat_msg.BUF[0] = 4;
+ 08D6 180B040104        movb #4,_gMCOConfig+4
+ 08DB                   .dbline 686
+ 08DB           ;             break;
+ 08DB 2013              bra L264
+ 08DD           L271:
+ 08DD                   .dbline 690
+ 08DD           ; 
+ 08DD           ;           // enter pre-operational
+ 08DD           ;           case 128:
+ 08DD           ;             gMCOConfig.heartbeat_msg.BUF[0] = 127;
+ 08DD 180B7F0104        movb #127,_gMCOConfig+4
+ 08E2                   .dbline 691
+ 08E2           ;             break;
+ 08E2 200C              bra L264
+ 08E4           L273:
+ 08E4                   .dbline 695
+ 08E4           ;    
+ 08E4           ;           // node reset
+ 08E4           ;           case 129:
+ 08E4           ;             MCOUSER_ResetApplication();
+ 08E4 4A000000          xcall $_MCOUSER_ResetApplication
+ 08E8                   .dbline 696
+ 08E8           ;             break;
+ 08E8 2006              bra L264
+ 08EA           L274:
+ 08EA                   .dbline 700
+ 08EA           ; 
+ 08EA           ;           // node reset communication
+ 08EA           ;           case 130:
+ 08EA           ;             MCOUSER_ResetCommunication();
+ 08EA 4A000000          xcall $_MCOUSER_ResetCommunication
+ 08EE                   .dbline 701
+ 08EE           ;                       INTR_ON();
+ 08EE 10EF              cli
+ 08F0                   .dbline 702
+ 08F0           ;             break;
+ 08F0                   .dbline 706
+ 08F0           ; 
+ 08F0           ;           // unknown command
+ 08F0           ;           default:
+ 08F0           ;             break;
+ 08F0           L264:
+ 08F0                   .dbline 709
+ 08F0           ;         }
+ 08F0           ; 
+ 08F0           ;         return 1;
+ 08F0 CC0001            ldd #1
+ 08F3 1820032A          lbra L239
+ 08F7           L255:
+ 08F7                   .dbline 711
+ 08F7           ;       } // NMT message addressed to this node
+ 08F7           ;     } // NMT master message received
+ 08F7           L253:
+ 08F7                   .dbline 715
+ 08F7           ;       
+ 08F7           ;       
+ 08F7           ;     // if node is not stopped...
+ 08F7           ;     if (gMCOConfig.heartbeat_msg.BUF[0] != 4)
+ 08F7 F60104            ldab _gMCOConfig+4
+ 08FA C104              cmpb #4
+ 08FC 271D              beq L276
+ 08FE                   .dbline 716
+ 08FE           ;     {
+ 08FE                   .dbline 718
+ 08FE           ;       // is the message an SDO request message for us?
+ 08FE           ;       if (gRxCAN.ID == gMCOConfig.Node_ID+0x600)
+ 08FE F60112            ldab _gMCOConfig+18
+ 0901 87                clra
+ 0902 C30600            addd #1536
+ 0905 BC0024            cpd _gRxCAN
+ 0908 2611              bne L279
+ 090A                   .dbline 719
+ 090A           ;       {
+ 090A                   .dbline 721
+ 090A           ;         // handle SDO request - return value not used in this version
+ 090A           ;         i = MCO_Handle_SDO_Request(&gRxCAN.BUF[0]);
+ 090A CC0028            ldd #_gRxCAN+4
+ 090D 4A00C7C7          xcall $_MCO_Handle_SDO_Request
+ 0911 6BF013            stab 19,S
+ 0914                   .dbline 722
+ 0914           ;         return 1;
+ 0914 CC0001            ldd #1
+ 0917 18200306          lbra L239
+ 091B           L279:
+ 091B                   .dbline 724
+ 091B           ;       }
+ 091B           ;     }
+ 091B           L276:
+ 091B                   .dbline 728
+ 091B           ; 
+ 091B           ; #if NR_OF_RPDOS > 0
+ 091B           ;     // is the node operational?
+ 091B           ;     if (gMCOConfig.heartbeat_msg.BUF[0] == 5)
+ 091B F60104            ldab _gMCOConfig+4
+ 091E C105              cmpb #5
+ 0920 1826006F          lbne L283
+ 0924                   .dbline 729
+ 0924           ;     {
+ 0924                   .dbline 730
+ 0924           ;       i = 0;
+ 0924 69F013            clr 19,S
+ 0927 1820005F          lbra L287
+ 092B           L286:
+ 092B                   .dbline 733
+ 092B           ;       // loop through RPDOs
+ 092B           ;       while (i < NR_OF_RPDOS)
+ 092B           ;       {
+ 092B                   .dbline 735
+ 092B           ;         // is this one of our RPDOs?
+ 092B           ;         if (gRxCAN.ID == gRPDOConfig[i].CANID)
+ 092B CD0030            ldy #_gRPDOConfig
+ 092E E6F013            ldab 19,S
+ 0931 87                clra
+ 0932 59                lsld
+ 0933 59                lsld
+ 0934 6D84              sty 4,S
+ 0936 E384              addd 4,S
+ 0938 B746              tfr D,Y
+ 093A FE0024            ldx _gRxCAN
+ 093D AE40              cpx 0,Y
+ 093F 2646              bne L289
+ 0941                   .dbline 736
+ 0941           ;         {
+ 0941                   .dbline 738
+ 0941           ;           // copy data from RPDO to process image
+ 0941           ;           memcpy(&(gProcImg[gRPDOConfig[i].offset]),&(gRxCAN.BUF[0]),gRPDOConfig[i].len);
+ 0941 E6F013            ldab 19,S
+ 0944 87                clra
+ 0945 59                lsld
+ 0946 59                lsld
+ 0947 6C8E              std 14,S
+ 0949 CD0032            ldy #_gRPDOConfig+2
+ 094C 6D84              sty 4,S
+ 094E E384              addd 4,S
+ 0950 B746              tfr D,Y
+ 0952 E640              ldab 0,Y
+ 0954 87                clra
+ 0955 6C82              std 2,S
+ 0957 CD0028            ldy #_gRxCAN+4
+ 095A 6D80              sty 0,S
+ 095C EC8E              ldd 14,S
+ 095E CD0033            ldy #_gRPDOConfig+3
+ 0961 6D84              sty 4,S
+ 0963 E384              addd 4,S
+ 0965 B746              tfr D,Y
+ 0967 E640              ldab 0,Y
+ 0969 87                clra
+ 096A B746              tfr D,Y
+ 096C CE0000            ldx #_gProcImg
+ 096F B764              tfr Y,D
+ 0971 6E84              stx 4,S
+ 0973 E384              addd 4,S
+ 0975 4A000000          xcall $_memcpy
+ 0979                   .dbline 740
+ 0979           ;           // exit the loop
+ 0979           ;           i = NR_OF_RPDOS;
+ 0979 1AF013            leax 19,S
+ 097C 18080008          movb #8,0,x
+ 0980                   .dbline 741
+ 0980           ;           ret_val = 1;
+ 0980 1AF012            leax 18,S
+ 0983 18080001          movb #1,0,x
+ 0987                   .dbline 742
+ 0987           ;         }
+ 0987           L289:
+ 0987                   .dbline 743
+ 0987           ;         i++;
+ 0987 62F013            inc 19,S
+ 098A                   .dbline 744
+ 098A           ;       } // for all RPDOs
+ 098A           L287:
+ 098A                   .dbline 732
+ 098A E6F013            ldab 19,S
+ 098D C108              cmpb #8
+ 098F 1825FF98          lblo L286
+ 0993                   .dbline 745
+ 0993           ;     } // node is operational
+ 0993           L283:
+ 0993                   .dbline 747
+ 0993           ; #endif // NR_OF_RPDOS > 0
+ 0993           ;   } // Message received
+ 0993           L251:
+ 0993                   .dbline 751
+ 0993           ; 
+ 0993           ; #if NR_OF_TPDOS > 0
+ 0993           ;   // is the node operational?
+ 0993           ;   if (gMCOConfig.heartbeat_msg.BUF[0] == 5)
+ 0993 F60104            ldab _gMCOConfig+4
+ 0996 C105              cmpb #5
+ 0998 18260249          lbne L294
+ 099C                   .dbline 752
+ 099C           ;   {
+ 099C                   .dbline 754
+ 099C           ;     // check next TPDO for transmission
+ 099C           ;     gTPDONr++;
+ 099C 720002            inc _gTPDONr
+ 099F                   .dbline 755
+ 099F           ;     if (gTPDONr >= NR_OF_TPDOS)
+ 099F F60002            ldab _gTPDONr
+ 09A2 C108              cmpb #8
+ 09A4 2503              blo L297
+ 09A6                   .dbline 756
+ 09A6           ;     {
+ 09A6                   .dbline 757
+ 09A6           ;       gTPDONr = 0;
+ 09A6 790002            clr _gTPDONr
+ 09A9                   .dbline 758
+ 09A9           ;     }
+ 09A9           L297:
+ 09A9                   .dbline 760
+ 09A9           ;     // is the TPDO 'gTPDONr' in use?
+ 09A9           ;     if (gTPDOConfig[gTPDONr].CAN.ID != 0)
+ 09A9 F60002            ldab _gTPDONr
+ 09AC 87                clra
+ 09AD B746              tfr D,Y
+ 09AF CC0016            ldd #22
+ 09B2 13                emul
+ 09B3 B746              tfr D,Y
+ 09B5 CE0050            ldx #_gTPDOConfig
+ 09B8 B764              tfr Y,D
+ 09BA 6E84              stx 4,S
+ 09BC E384              addd 4,S
+ 09BE B746              tfr D,Y
+ 09C0 ED40              ldy 0,Y
+ 09C2 8D0000            cpy #0
+ 09C5 1827021C          lbeq L299
+ 09C9                   .dbline 761
+ 09C9           ;     {
+ 09C9                   .dbline 764
+ 09C9           ; #ifdef USE_EVENT_TIME
+ 09C9           ;       // does TPDO use event timer and event timer is expired? if so we need to transmit now
+ 09C9           ;       if ((gTPDOConfig[gTPDONr].event_time != 0) && 
+ 09C9 F60002            ldab _gTPDONr
+ 09CC 87                clra
+ 09CD B746              tfr D,Y
+ 09CF CC0016            ldd #22
+ 09D2 13                emul
+ 09D3 6C8C              std 12,S
+ 09D5 CD005C            ldy #_gTPDOConfig+12
+ 09D8 6D84              sty 4,S
+ 09DA E384              addd 4,S
+ 09DC B746              tfr D,Y
+ 09DE ED40              ldy 0,Y
+ 09E0 8D0000            cpy #0
+ 09E3 18270067          lbeq L301
+ 09E7 EC8C              ldd 12,S
+ 09E9 CD005E            ldy #_gTPDOConfig+14
+ 09EC 6D84              sty 4,S
+ 09EE E384              addd 4,S
+ 09F0 B746              tfr D,Y
+ 09F2 EC40              ldd 0,Y
+ 09F4 4A000000          xcall $_MCOHW_IsTimeExpired
+ 09F8 87                clra
+ 09F9 C100              cmpb #0
+ 09FB 2751              beq L301
+ 09FD                   .dbline 766
+ 09FD           ;           (MCOHW_IsTimeExpired(gTPDOConfig[gTPDONr].event_timestamp)) )
+ 09FD           ;       {
+ 09FD                   .dbline 768
+ 09FD           ;         // get data from process image and transmit
+ 09FD           ;         memcpy(&(gTPDOConfig[gTPDONr].CAN.BUF[0]),&(gProcImg[gTPDOConfig[gTPDONr].offset]),gTPDOConfig[gTPDONr].CAN.LEN);
+ 09FD F60002            ldab _gTPDONr
+ 0A00 87                clra
+ 0A01 B746              tfr D,Y
+ 0A03 CC0016            ldd #22
+ 0A06 13                emul
+ 0A07 6C8A              std 10,S
+ 0A09 CD0052            ldy #_gTPDOConfig+2
+ 0A0C 6D84              sty 4,S
+ 0A0E E384              addd 4,S
+ 0A10 B746              tfr D,Y
+ 0A12 E640              ldab 0,Y
+ 0A14 87                clra
+ 0A15 6C82              std 2,S
+ 0A17 EC8A              ldd 10,S
+ 0A19 CD0065            ldy #_gTPDOConfig+21
+ 0A1C 6D84              sty 4,S
+ 0A1E E384              addd 4,S
+ 0A20 B746              tfr D,Y
+ 0A22 E640              ldab 0,Y
+ 0A24 87                clra
+ 0A25 B746              tfr D,Y
+ 0A27 CE0000            ldx #_gProcImg
+ 0A2A B764              tfr Y,D
+ 0A2C 6E84              stx 4,S
+ 0A2E E384              addd 4,S
+ 0A30 6C80              std 0,S
+ 0A32 EC8A              ldd 10,S
+ 0A34 CD0054            ldy #_gTPDOConfig+4
+ 0A37 6D84              sty 4,S
+ 0A39 E384              addd 4,S
+ 0A3B 4A000000          xcall $_memcpy
+ 0A3F                   .dbline 769
+ 0A3F           ;         MCO_TransmitPDO(gTPDONr);
+ 0A3F F60002            ldab _gTPDONr
+ 0A42 87                clra
+ 0A43 4A04A2A2          xcall $_MCO_TransmitPDO
+ 0A47                   .dbline 770
+ 0A47           ;         return 1;
+ 0A47 CC0001            ldd #1
+ 0A4A 182001D3          lbra L239
+ 0A4E           L301:
+ 0A4E                   .dbline 775
+ 0A4E           ;       }
+ 0A4E           ; #endif // USE_EVENT_TIME
+ 0A4E           ; #ifdef USE_INHIBIT_TIME
+ 0A4E           ;       // does the TPDO use an inhibit time? - COS transmission
+ 0A4E           ;       if (gTPDOConfig[gTPDONr].inhibit_time != 0)
+ 0A4E F60002            ldab _gTPDONr
+ 0A51 87                clra
+ 0A52 B746              tfr D,Y
+ 0A54 CC0016            ldd #22
+ 0A57 13                emul
+ 0A58 B746              tfr D,Y
+ 0A5A CE0060            ldx #_gTPDOConfig+16
+ 0A5D B764              tfr Y,D
+ 0A5F 6E84              stx 4,S
+ 0A61 E384              addd 4,S
+ 0A63 B746              tfr D,Y
+ 0A65 ED40              ldy 0,Y
+ 0A67 8D0000            cpy #0
+ 0A6A 18270177          lbeq L308
+ 0A6E                   .dbline 776
+ 0A6E           ;       {
+ 0A6E                   .dbline 778
+ 0A6E           ;         // is the inihibit timer currently running?
+ 0A6E           ;         if (gTPDOConfig[gTPDONr].inhibit_status > 0)
+ 0A6E F60002            ldab _gTPDONr
+ 0A71 87                clra
+ 0A72 B746              tfr D,Y
+ 0A74 CC0016            ldd #22
+ 0A77 13                emul
+ 0A78 B746              tfr D,Y
+ 0A7A CE0064            ldx #_gTPDOConfig+20
+ 0A7D B764              tfr Y,D
+ 0A7F 6E84              stx 4,S
+ 0A81 E384              addd 4,S
+ 0A83 B746              tfr D,Y
+ 0A85 E640              ldab 0,Y
+ 0A87 C100              cmpb #0
+ 0A89 236A              bls L311
+ 0A8B                   .dbline 779
+ 0A8B           ;         {
+ 0A8B                   .dbline 781
+ 0A8B           ;           // has the inhibit time expired?
+ 0A8B           ;           if (MCOHW_IsTimeExpired(gTPDOConfig[gTPDONr].inhibit_timestamp))
+ 0A8B F60002            ldab _gTPDONr
+ 0A8E 87                clra
+ 0A8F B746              tfr D,Y
+ 0A91 CC0016            ldd #22
+ 0A94 13                emul
+ 0A95 B746              tfr D,Y
+ 0A97 CE0062            ldx #_gTPDOConfig+18
+ 0A9A B764              tfr Y,D
+ 0A9C 6E84              stx 4,S
+ 0A9E E384              addd 4,S
+ 0AA0 B746              tfr D,Y
+ 0AA2 EC40              ldd 0,Y
+ 0AA4 4A000000          xcall $_MCOHW_IsTimeExpired
+ 0AA8 87                clra
+ 0AA9 C100              cmpb #0
+ 0AAB 2748              beq L314
+ 0AAD                   .dbline 782
+ 0AAD           ;           {
+ 0AAD                   .dbline 784
+ 0AAD           ;             // is there a new transmit message already waiting?
+ 0AAD           ;             if (gTPDOConfig[gTPDONr].inhibit_status == 2)
+ 0AAD F60002            ldab _gTPDONr
+ 0AB0 87                clra
+ 0AB1 B746              tfr D,Y
+ 0AB3 CC0016            ldd #22
+ 0AB6 13                emul
+ 0AB7 B746              tfr D,Y
+ 0AB9 CE0064            ldx #_gTPDOConfig+20
+ 0ABC B764              tfr Y,D
+ 0ABE 6E84              stx 4,S
+ 0AC0 E384              addd 4,S
+ 0AC2 B746              tfr D,Y
+ 0AC4 E640              ldab 0,Y
+ 0AC6 C102              cmpb #2
+ 0AC8 260F              bne L317
+ 0ACA                   .dbline 785
+ 0ACA           ;             { 
+ 0ACA                   .dbline 787
+ 0ACA           ;               // transmit now
+ 0ACA           ;               MCO_TransmitPDO(gTPDONr);
+ 0ACA F60002            ldab _gTPDONr
+ 0ACD 87                clra
+ 0ACE 4A04A2A2          xcall $_MCO_TransmitPDO
+ 0AD2                   .dbline 788
+ 0AD2           ;               return 1;
+ 0AD2 CC0001            ldd #1
+ 0AD5 18200148          lbra L239
+ 0AD9           L317:
+ 0AD9                   .dbline 792
+ 0AD9           ;             }
+ 0AD9           ;             // no new message waiting, but timer expired
+ 0AD9           ;             else 
+ 0AD9           ;             {
+ 0AD9                   .dbline 793
+ 0AD9           ;               gTPDOConfig[gTPDONr].inhibit_status = 0;
+ 0AD9 F60002            ldab _gTPDONr
+ 0ADC 87                clra
+ 0ADD B746              tfr D,Y
+ 0ADF CC0016            ldd #22
+ 0AE2 13                emul
+ 0AE3 B746              tfr D,Y
+ 0AE5 CE0064            ldx #_gTPDOConfig+20
+ 0AE8 B764              tfr Y,D
+ 0AEA 6E84              stx 4,S
+ 0AEC E384              addd 4,S
+ 0AEE B746              tfr D,Y
+ 0AF0 CC0000            ldd #0
+ 0AF3 6B40              stab 0,Y
+ 0AF5                   .dbline 794
+ 0AF5           ;             }
+ 0AF5                   .dbline 795
+ 0AF5           ;           }
+ 0AF5           L314:
+ 0AF5                   .dbline 796
+ 0AF5           ;         }
+ 0AF5           L311:
+ 0AF5                   .dbline 798
+ 0AF5           ;         // is inhibit status 0 or 1?
+ 0AF5           ;         if (gTPDOConfig[gTPDONr].inhibit_status < 2)
+ 0AF5 F60002            ldab _gTPDONr
+ 0AF8 87                clra
+ 0AF9 B746              tfr D,Y
+ 0AFB CC0016            ldd #22
+ 0AFE 13                emul
+ 0AFF B746              tfr D,Y
+ 0B01 CE0064            ldx #_gTPDOConfig+20
+ 0B04 B764              tfr Y,D
+ 0B06 6E84              stx 4,S
+ 0B08 E384              addd 4,S
+ 0B0A B746              tfr D,Y
+ 0B0C E640              ldab 0,Y
+ 0B0E C102              cmpb #2
+ 0B10 182400D1          lbhs L321
+ 0B14                   .dbline 799
+ 0B14           ;         {
+ 0B14                   .dbline 801
+ 0B14           ;           // has application data changed?
+ 0B14           ;           if ((memcmp(&gTPDOConfig[gTPDONr].CAN.BUF[0],&(gProcImg[gTPDOConfig[gTPDONr].offset]),gTPDOConfig[gTPDONr].CAN.LEN) != 0))
+ 0B14 F60002            ldab _gTPDONr
+ 0B17 87                clra
+ 0B18 B746              tfr D,Y
+ 0B1A CC0016            ldd #22
+ 0B1D 13                emul
+ 0B1E 6C88              std 8,S
+ 0B20 CD0052            ldy #_gTPDOConfig+2
+ 0B23 6D84              sty 4,S
+ 0B25 E384              addd 4,S
+ 0B27 B746              tfr D,Y
+ 0B29 E640              ldab 0,Y
+ 0B2B 87                clra
+ 0B2C 6C82              std 2,S
+ 0B2E EC88              ldd 8,S
+ 0B30 CD0065            ldy #_gTPDOConfig+21
+ 0B33 6D84              sty 4,S
+ 0B35 E384              addd 4,S
+ 0B37 B746              tfr D,Y
+ 0B39 E640              ldab 0,Y
+ 0B3B 87                clra
+ 0B3C B746              tfr D,Y
+ 0B3E CE0000            ldx #_gProcImg
+ 0B41 B764              tfr Y,D
+ 0B43 6E84              stx 4,S
+ 0B45 E384              addd 4,S
+ 0B47 6C80              std 0,S
+ 0B49 EC88              ldd 8,S
+ 0B4B CD0054            ldy #_gTPDOConfig+4
+ 0B4E 6D84              sty 4,S
+ 0B50 E384              addd 4,S
+ 0B52 4A000000          xcall $_memcmp
+ 0B56 8C0000            cpd #0
+ 0B59 18270088          lbeq L324
+ 0B5D                   .dbline 802
+ 0B5D           ;           {
+ 0B5D                   .dbline 804
+ 0B5D           ;             // Copy application data
+ 0B5D           ;             memcpy(&gTPDOConfig[gTPDONr].CAN.BUF[0],&(gProcImg[gTPDOConfig[gTPDONr].offset]),gTPDOConfig[gTPDONr].CAN.LEN);
+ 0B5D F60002            ldab _gTPDONr
+ 0B60 87                clra
+ 0B61 B746              tfr D,Y
+ 0B63 CC0016            ldd #22
+ 0B66 13                emul
+ 0B67 6C86              std 6,S
+ 0B69 CD0052            ldy #_gTPDOConfig+2
+ 0B6C 6D84              sty 4,S
+ 0B6E E384              addd 4,S
+ 0B70 B746              tfr D,Y
+ 0B72 E640              ldab 0,Y
+ 0B74 87                clra
+ 0B75 6C82              std 2,S
+ 0B77 EC86              ldd 6,S
+ 0B79 CD0065            ldy #_gTPDOConfig+21
+ 0B7C 6D84              sty 4,S
+ 0B7E E384              addd 4,S
+ 0B80 B746              tfr D,Y
+ 0B82 E640              ldab 0,Y
+ 0B84 87                clra
+ 0B85 B746              tfr D,Y
+ 0B87 CE0000            ldx #_gProcImg
+ 0B8A B764              tfr Y,D
+ 0B8C 6E84              stx 4,S
+ 0B8E E384              addd 4,S
+ 0B90 6C80              std 0,S
+ 0B92 EC86              ldd 6,S
+ 0B94 CD0054            ldy #_gTPDOConfig+4
+ 0B97 6D84              sty 4,S
+ 0B99 E384              addd 4,S
+ 0B9B 4A000000          xcall $_memcpy
+ 0B9F                   .dbline 806
+ 0B9F           ;             // has inhibit time expired?
+ 0B9F           ;             if (gTPDOConfig[gTPDONr].inhibit_status == 0)
+ 0B9F F60002            ldab _gTPDONr
+ 0BA2 87                clra
+ 0BA3 B746              tfr D,Y
+ 0BA5 CC0016            ldd #22
+ 0BA8 13                emul
+ 0BA9 B746              tfr D,Y
+ 0BAB CE0064            ldx #_gTPDOConfig+20
+ 0BAE B764              tfr Y,D
+ 0BB0 6E84              stx 4,S
+ 0BB2 E384              addd 4,S
+ 0BB4 B746              tfr D,Y
+ 0BB6 E640              ldab 0,Y
+ 0BB8 C100              cmpb #0
+ 0BBA 260D              bne L332
+ 0BBC                   .dbline 807
+ 0BBC           ;             {
+ 0BBC                   .dbline 809
+ 0BBC           ;               // transmit now
+ 0BBC           ;               MCO_TransmitPDO(gTPDONr);
+ 0BBC F60002            ldab _gTPDONr
+ 0BBF 87                clra
+ 0BC0 4A04A2A2          xcall $_MCO_TransmitPDO
+ 0BC4                   .dbline 812
+ 0BC4           ;                         // Clear first byte to force transmit again when new image data is receive (via serial port)
+ 0BC4           ;                         //gProcImg[gTPDOConfig[gTPDONr].offset] = gTPDOConfig[gTPDONr].CAN.BUF[0] = 0;
+ 0BC4           ;               return 1;
+ 0BC4 CC0001            ldd #1
+ 0BC7 2058              bra L239
+ 0BC9           L332:
+ 0BC9                   .dbline 816
+ 0BC9           ;             }
+ 0BC9           ;             // inhibit status is 1
+ 0BC9           ;             else
+ 0BC9           ;             {
+ 0BC9                   .dbline 818
+ 0BC9           ;               // wait for inhibit time to expire 
+ 0BC9           ;               gTPDOConfig[gTPDONr].inhibit_status = 2;
+ 0BC9 F60002            ldab _gTPDONr
+ 0BCC 87                clra
+ 0BCD B746              tfr D,Y
+ 0BCF CC0016            ldd #22
+ 0BD2 13                emul
+ 0BD3 B746              tfr D,Y
+ 0BD5 CE0064            ldx #_gTPDOConfig+20
+ 0BD8 B764              tfr Y,D
+ 0BDA 6E84              stx 4,S
+ 0BDC E384              addd 4,S
+ 0BDE B746              tfr D,Y
+ 0BE0 CC0002            ldd #2
+ 0BE3 6B40              stab 0,Y
+ 0BE5                   .dbline 819
+ 0BE5           ;             }
+ 0BE5                   .dbline 820
+ 0BE5           ;           }
+ 0BE5           L324:
+ 0BE5                   .dbline 821
+ 0BE5           ;         }
+ 0BE5           L321:
+ 0BE5                   .dbline 822
+ 0BE5           ;       } // Inhibit Time != 0
+ 0BE5           L308:
+ 0BE5                   .dbline 824
+ 0BE5           ; #endif // USE_INHIBIT_TIME
+ 0BE5           ;     } // PDO active (CAN_ID != 0)  
+ 0BE5           L299:
+ 0BE5                   .dbline 825
+ 0BE5           ;   } // if node is operational
+ 0BE5           L294:
+ 0BE5                   .dbline 829
+ 0BE5           ; #endif // NR_OF_TPDOS > 0
+ 0BE5           ;   
+ 0BE5           ;   // do we produce a heartbeat?
+ 0BE5           ;   if (gMCOConfig.heartbeat_time != 0)
+ 0BE5 FD010E            ldy _gMCOConfig+14
+ 0BE8 8D0000            cpy #0
+ 0BEB 2730              beq L336
+ 0BED                   .dbline 830
+ 0BED           ;   {
+ 0BED                   .dbline 832
+ 0BED           ;     // has heartbeat time passed?
+ 0BED           ;     if (MCOHW_IsTimeExpired(gMCOConfig.heartbeat_timestamp))
+ 0BED FC0110            ldd _gMCOConfig+16
+ 0BF0 4A000000          xcall $_MCOHW_IsTimeExpired
+ 0BF4 87                clra
+ 0BF5 C100              cmpb #0
+ 0BF7 2724              beq L339
+ 0BF9                   .dbline 833
+ 0BF9           ;     {
+ 0BF9                   .dbline 835
+ 0BF9           ;       // transmit heartbeat message
+ 0BF9           ;       if (!MCOHW_PushMessage(&gMCOConfig.heartbeat_msg))
+ 0BF9 CC0100            ldd #_gMCOConfig
+ 0BFC 4A000000          xcall $_MCOHW_PushMessage
+ 0C00 87                clra
+ 0C01 C100              cmpb #0
+ 0C03 2607              bne L342
+ 0C05                   .dbline 836
+ 0C05           ;       {
+ 0C05                   .dbline 837
+ 0C05           ;         MCOUSER_FatalError(0x8801);
+ 0C05 CC8801            ldd #34817
+ 0C08 4A000000          xcall $_MCOUSER_FatalError
+ 0C0C                   .dbline 838
+ 0C0C           ;       }
+ 0C0C           L342:
+ 0C0C                   .dbline 840
+ 0C0C           ;       // get new heartbeat time for next transmission
+ 0C0C           ;       gMCOConfig.heartbeat_timestamp = MCOHW_GetTime() + gMCOConfig.heartbeat_time;
+ 0C0C 4A000000          xcall $_MCOHW_GetTime
+ 0C10 F3010E            addd _gMCOConfig+14
+ 0C13 7C0110            std _gMCOConfig+16
+ 0C16                   .dbline 841
+ 0C16           ;       ret_val = 1;
+ 0C16 1AF012            leax 18,S
+ 0C19 18080001          movb #1,0,x
+ 0C1D                   .dbline 842
+ 0C1D           ;     }
+ 0C1D           L339:
+ 0C1D                   .dbline 843
+ 0C1D           ;   }
+ 0C1D           L336:
+ 0C1D                   .dbline 844
+ 0C1D           ;   return ret_val;
+ 0C1D E6F012            ldab 18,S
+ 0C20 87                clra
+ 0C21                   .dbline -2
+ 0C21           L239:
+ 0C21                   .dbline 0 ; func end
+ 0C21 1BF014            leas 20,S
+ 0C24 0A                rtc
+ 0C25                   .dbsym l ret_val 18 c
+ 0C25                   .dbsym l i 19 c
+ 0C25                   .dbend
+ 0C25                   .dbfunc e Reset_Max33011 _Reset_Max33011 fV
+ 0C25           ;              i -> 0,SP
+ 0C25           ;              j -> 2,SP
+ 0C25           $_Reset_Max33011::
+ 0C25 1B9C              leas -4,S
+ 0C27                   .dbline -1
+ 0C27                   .dbline 848
+ 0C27           ; }
+ 0C27           ; 
+ 0C27           ; void Reset_Max33011 ( void )
+ 0C27           ; {
+ 0C27                   .dbline 850
+ 0C27           ;     int i,j;
+ 0C27           ;     CANCTL0 = 0x01;                                                     // Put CAN in initialization mode
+ 0C27 180B010140        movb #1,0x140
+ 0C2C                   .dbline 851
+ 0C2C           ;     Timer1 = .05 * RTI_One_Sec;
+ 0C2C 180300300000      movw #48,_Timer1
+ 0C32           L347:
+ 0C32                   .dbline 852
+ 0C32           ;     while (!(CANCTL1 & 0x01) && Timer1 );       // wait for acknowledge
+ 0C32           L348:
+ 0C32                   .dbline 852
+ 0C32 F60141            ldab 0x141
+ 0C35 C501              bitb #1
+ 0C37 2608              bne L350
+ 0C39 FD0000            ldy _Timer1
+ 0C3C 8D0000            cpy #0
+ 0C3F 26F1              bne L347
+ 0C41           L350:
+ 0C41                   .dbline 853
+ 0C41           ;     MODRR |= 0x03;                                                      // Reroute MSCAN0 to PJ6,PJ7
+ 0C41 1C025703          bset 0x257,#3
+ 0C45                   .dbline 854
+ 0C45           ;     DDRM |= 0x02;                                                       // Port M bit 1 set as output
+ 0C45 1C025202          bset 0x252,#2
+ 0C49                   .dbline 855
+ 0C49           ;     for (i=0;i<52;i++)
+ 0C49 1800800000        movw #0,0,S
+ 0C4E           L351:
+ 0C4E                   .dbline 856
+ 0C4E           ;     {
+ 0C4E                   .dbline 857
+ 0C4E           ;               for(j=0;j<50;j++);
+ 0C4E 1800820000        movw #0,2,S
+ 0C53           L355:
+ 0C53                   .dbline 857
+ 0C53           L356:
+ 0C53                   .dbline 857
+ 0C53 ED82              ldy 2,S
+ 0C55 02                iny
+ 0C56 6D82              sty 2,S
+ 0C58                   .dbline 857
+ 0C58 8D0032            cpy #50
+ 0C5B 2DF6              blt L355
+ 0C5D                   .dbline 858
+ 0C5D           ;           PTM ^= 0x02;                                              // Output 40 clock pulses on CAN_TX, This clears any Fault condition in the MAX33011
+ 0C5D F60250            ldab 0x250
+ 0C60 C802              eorb #2
+ 0C62 7B0250            stab 0x250
+ 0C65                   .dbline 859
+ 0C65           ;     }
+ 0C65           L352:
+ 0C65                   .dbline 855
+ 0C65 ED80              ldy 0,S
+ 0C67 02                iny
+ 0C68 6D80              sty 0,S
+ 0C6A                   .dbline 855
+ 0C6A 8D0034            cpy #52
+ 0C6D 2DDF              blt L351
+ 0C6F                   .dbline 860
+ 0C6F           ;     No2WireCnt = 0;
+ 0C6F 180300000000      movw #0,_No2WireCnt
+ 0C75                   .dbline 861
+ 0C75           ;     Gen_Flags &= ~Gen_Flags_No2Wire;
+ 0C75 1D000020          bclr _Gen_Flags,#32
+ 0C79                   .dbline 862
+ 0C79           ;     MODRR &= ~0x03;                                                     // Reroute MSCAN0 to PM0,PM1
+ 0C79 1D025703          bclr 0x257,#3
+ 0C7D                   .dbline 863
+ 0C7D           ;     CANCTL0 &= ~0x01;                                           // Take CAN out of initialization mode
+ 0C7D 1D014001          bclr 0x140,#1
+ 0C81                   .dbline 864
+ 0C81           ;     Timer1 = .05 * RTI_One_Sec;
+ 0C81 180300300000      movw #48,_Timer1
+ 0C87           L359:
+ 0C87                   .dbline 865
+ 0C87           ;     while ((CANCTL1 & 0x01) && Timer1 );        // wait for acknowledge
+ 0C87           L360:
+ 0C87                   .dbline 865
+ 0C87 1F01410108        brclr 0x141,#1,L362
+ 0C8C FD0000            ldy _Timer1
+ 0C8F 8D0000            cpy #0
+ 0C92 26F3              bne L359
+ 0C94           L362:
+ 0C94                   .dbline -2
+ 0C94           L346:
+ 0C94                   .dbline 0 ; func end
+ 0C94 1B84              leas 4,S
+ 0C96 0A                rtc
+ 0C97                   .dbsym l i 0 I
+ 0C97                   .dbsym l j 2 I
+ 0C97                   .dbend
+                        .area bss
+ 0000                   .dbfile C:\Dev\REV1~1.01\mco.c
+ 0000           _gTxMonitor::
+ 0000                   .blkb 12
+ 000C                   .dbstruct 0 12 .2
+ 000C                   .dbfield 0 ID i
+ 000C                   .dbfield 2 LEN c
+ 000C                   .dbfield 3 dummy32bit c
+ 000C                   .dbfield 4 BUF A[8:8]c
+ 000C                   .dbend
+ 000C                   .dbsym e gTxMonitor _gTxMonitor S[.2]
+ 000C           _gTxNMT::
+ 000C                   .blkb 12
+ 0018                   .dbsym e gTxNMT _gTxNMT S[.2]
+ 0018           _gTxSDO::
+ 0018                   .blkb 12
+ 0024                   .dbsym e gTxSDO _gTxSDO S[.2]
+ 0024           _gRxCAN::
+ 0024                   .blkb 12
+ 0030                   .dbsym e gRxCAN _gRxCAN S[.2]
+ 0030           _gRPDOConfig::
+ 0030                   .blkb 32
+ 0050                   .dbstruct 0 4 .5
+ 0050                   .dbfield 0 CANID i
+ 0050                   .dbfield 2 len c
+ 0050                   .dbfield 3 offset c
+ 0050                   .dbend
+ 0050                   .dbsym e gRPDOConfig _gRPDOConfig A[32:8]S[.5]
+ 0050           _gTPDOConfig::
+ 0050                   .blkb 176
+ 0100                   .dbstruct 0 22 .4
+ 0100                   .dbfield 0 CAN S[.2]
+ 0100                   .dbfield 12 event_time i
+ 0100                   .dbfield 14 event_timestamp i
+ 0100                   .dbfield 16 inhibit_time i
+ 0100                   .dbfield 18 inhibit_timestamp i
+ 0100                   .dbfield 20 inhibit_status c
+ 0100                   .dbfield 21 offset c
+ 0100                   .dbend
+ 0100                   .dbsym e gTPDOConfig _gTPDOConfig A[176:8]S[.4]
+ 0100           _gMCOConfig::
+ 0100                   .blkb 21
+ 0115                   .dbstruct 0 21 .3
+ 0115                   .dbfield 0 heartbeat_msg S[.2]
+ 0115                   .dbfield 12 Baudrate i
+ 0115                   .dbfield 14 heartbeat_time i
+ 0115                   .dbfield 16 heartbeat_timestamp i
+ 0115                   .dbfield 18 Node_ID c
+ 0115                   .dbfield 19 error_code c
+ 0115                   .dbfield 20 error_register c
+ 0115                   .dbend
+ 0115                   .dbsym e gMCOConfig _gMCOConfig S[.3]
+ 0115           _RamCkSum::
+ 0115                   .blkb 1
+ 0116                   .dbsym e RamCkSum _RamCkSum c
+ 0116           _RamData::
+ 0116                   .blkb 1
+ 0117                   .dbsym e RamData _RamData c
+ 0117           _RamAddress::
+ 0117                   .blkb 2
+ 0119                   .dbsym e RamAddress _RamAddress pc
+ 0119           _StartAddress::
+ 0119                   .blkb 2
+ 011B                   .dbsym e StartAddress _StartAddress pfV

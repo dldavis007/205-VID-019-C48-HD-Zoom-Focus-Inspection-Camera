@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "${workspaceFolder}/.vscode/build.bat",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "detail": "Runs the project build process by deleting .o files and compiling the project.",
+            "options": {
+                "cwd": "${workspaceFolder}/.vscode"
+            }
+        },
+        {
+            "label": "VSConvert Task",
+            "type": "shell",
+            "command": "${workspaceFolder}/.vscode/vsconvert.bat",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "detail": "Organizes project files and modifies .src file.",
+            "options": {
+                "cwd": "${workspaceFolder}/.vscode"
+            }
+        }
+    ]
+}

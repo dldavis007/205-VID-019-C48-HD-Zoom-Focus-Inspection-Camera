@@ -1,0 +1,1550 @@
+                        .module Interrupts.c
+                        .area text
+ 0000                   .dbfile ..\REV1~1.01\Interrupts.c
+                        .area memory(abs)
+                        .org 0xff80
+ FF80                   .dbfile ..\REV1~1.01\Interrupts.c
+ FF80           _interrupt_vectors::
+ FF80 0000              .word _DUMMY_ENTRY
+ FF82 0000              .word _DUMMY_ENTRY
+ FF84 0000              .word _DUMMY_ENTRY
+ FF86 0000              .word _DUMMY_ENTRY
+ FF88 0000              .word _DUMMY_ENTRY
+ FF8A 0000              .word _DUMMY_ENTRY
+ FF8C 0000              .word _DUMMY_ENTRY
+ FF8E 0268              .word _PTP_Int_Handler
+ FF90 0000              .word _DUMMY_ENTRY
+ FF92 0000              .word _DUMMY_ENTRY
+ FF94 0000              .word _DUMMY_ENTRY
+ FF96 0000              .word _DUMMY_ENTRY
+ FF98 0000              .word _DUMMY_ENTRY
+ FF9A 0000              .word _DUMMY_ENTRY
+ FF9C 0000              .word _DUMMY_ENTRY
+ FF9E 0000              .word _DUMMY_ENTRY
+ FFA0 0000              .word _DUMMY_ENTRY
+ FFA2 0000              .word _DUMMY_ENTRY
+ FFA4 0000              .word _DUMMY_ENTRY
+ FFA6 0000              .word _DUMMY_ENTRY
+ FFA8 0000              .word _DUMMY_ENTRY
+ FFAA 0000              .word _DUMMY_ENTRY
+ FFAC 0000              .word _DUMMY_ENTRY
+ FFAE 0000              .word _DUMMY_ENTRY
+ FFB0 0000              .word _DUMMY_ENTRY
+ FFB2 0001              .word _CANRxISR
+ FFB4 0000              .word _DUMMY_ENTRY
+ FFB6 0000              .word _DUMMY_ENTRY
+ FFB8 0000              .word _DUMMY_ENTRY
+ FFBA 0000              .word _DUMMY_ENTRY
+ FFBC 0000              .word _DUMMY_ENTRY
+ FFBE 0000              .word _DUMMY_ENTRY
+ FFC0 00A8              .word _IIC_Int_Handler
+ FFC2 0000              .word _DUMMY_ENTRY
+ FFC4 0000              .word _DUMMY_ENTRY
+ FFC6 0000              .word _DUMMY_ENTRY
+ FFC8 0000              .word _DUMMY_ENTRY
+ FFCA 0000              .word _DUMMY_ENTRY
+ FFCC 0000              .word _DUMMY_ENTRY
+ FFCE 0000              .word _DUMMY_ENTRY
+ FFD0 0000              .word _DUMMY_ENTRY
+ FFD2 0000              .word _DUMMY_ENTRY
+ FFD4 0000              .word _DUMMY_ENTRY
+ FFD6 03B2              .word _SCI0_Int_Handler
+ FFD8 01C9              .word _SPI0_Int_Handler
+ FFDA 0000              .word _DUMMY_ENTRY
+ FFDC 0000              .word _DUMMY_ENTRY
+ FFDE 0000              .word _DUMMY_ENTRY
+ FFE0 0255              .word _TC7_Int_Handler
+ FFE2 024F              .word _TC6_Int_Handler
+ FFE4 0249              .word _TC5_Int_Handler
+ FFE6 0243              .word _TC4_Int_Handler
+ FFE8 023D              .word _TC3_Int_Handler
+ FFEA 0237              .word _TC2_Int_Handler
+ FFEC 0231              .word _TC1_Int_Handler
+ FFEE 022B              .word _TC0_Int_Handler
+ FFF0 027F              .word _RTI_Int_Handler
+ FFF2 00A7              .word _IRQ_Int_Handler
+ FFF4 0000              .word _DUMMY_ENTRY
+ FFF6 0000              .word _DUMMY_ENTRY
+ FFF8 0000              .word _DUMMY_ENTRY
+ FFFA 0000              .word __start
+ FFFC 0000              .word _DUMMY_ENTRY
+ FFFE 0000              .word __start
+ 10000                   .dbfile C:\Dev\REV1~1.01\vectors.h
+ 10000                   .dbsym e interrupt_vectors _interrupt_vectors A[128:64]pfV
+                        .area data
+ 0000                   .dbfile C:\Dev\REV1~1.01\vectors.h
+ 0000           _Seconds::
+ 0000                   .blkb 1
+                        .area idata
+ 0000 3C                .byte 60
+                        .area data
+ 0001                   .dbfile C:\Dev\REV1~1.01\vectors.h
+ 0001                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0001                   .dbsym e Seconds _Seconds c
+ 0001           _Tick::
+ 0001                   .blkb 2
+                        .area idata
+ 0001 03D0              .word 976
+                        .area data
+ 0003                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0003                   .dbsym e Tick _Tick I
+ 0003           _BootUpTimer::
+ 0003                   .blkb 2
+                        .area idata
+ 0003 05B8              .word 1464
+                        .area data
+ 0005                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0005                   .dbsym e BootUpTimer _BootUpTimer i
+ 0005           _TestTimer::
+ 0005                   .blkb 2
+                        .area idata
+ 0005 0000              .word 0
+                        .area data
+ 0007                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0007                   .dbsym e TestTimer _TestTimer i
+ 0007           _testTime::
+ 0007                   .blkb 4
+                        .area idata
+ 0007 00000000          .word 0x0,0x0
+                        .area data
+ 000B                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 000B                   .dbsym e testTime _testTime D
+ 000B           _storeTestTime::
+ 000B                   .blkb 4
+                        .area idata
+ 000B 00000000          .word 0x0,0x0
+                        .area data
+ 000F                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 000F                   .dbsym e storeTestTime _storeTestTime D
+ 000F           _fast_inc::
+ 000F                   .blkb 1
+                        .area idata
+ 000F 00                .byte 0
+                        .area data
+ 0010                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0010                   .dbsym e fast_inc _fast_inc c
+ 0010           _SPI0InBufptr::
+ 0010                   .blkb 2
+                        .area idata
+ 0010 0000              .word 0
+                        .area data
+ 0012                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0012                   .dbsym e SPI0InBufptr _SPI0InBufptr I
+ 0012           _SPI0OutBufptr::
+ 0012                   .blkb 2
+                        .area idata
+ 0012 0000              .word 0
+                        .area data
+ 0014                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0014                   .dbsym e SPI0OutBufptr _SPI0OutBufptr I
+ 0014           _SIN0Buf::
+ 0014                   .blkb 2
+                        .area idata
+ 0014 0000              .byte 0,0
+                        .area data
+ 0016                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0016                   .blkb 148
+                        .area idata
+ 0016 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 0052 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 008E 00000000000000000000      .word 0,0,0,0,0
+ 0098 00000000000000000000      .word 0,0,0,0,0
+ 00A2 0000000000000000  .byte 0,0,0,0,0,0,0,0
+                        .area data
+ 00AA                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 00AA                   .dbsym e SIN0Buf _SIN0Buf A[150:150]c
+ 00AA           _SIN0Bufptr::
+ 00AA                   .blkb 2
+                        .area idata
+ 00AA 0000              .word 0
+                        .area data
+ 00AC                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 00AC                   .dbsym e SIN0Bufptr _SIN0Bufptr I
+ 00AC           _SOUT0Buf::
+ 00AC                   .blkb 2
+                        .area idata
+ 00AC 0000              .byte 0,0
+                        .area data
+ 00AE                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 00AE                   .blkb 78
+                        .area idata
+ 00AE 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 00EA 00000000000000000000      .word 0,0,0,0,0
+ 00F4 0000000000000000  .byte 0,0,0,0,0,0,0,0
+                        .area data
+ 00FC                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 00FC                   .dbsym e SOUT0Buf _SOUT0Buf A[80:80]c
+ 00FC           _SOUT0Bufptr::
+ 00FC                   .blkb 2
+                        .area idata
+ 00FC 0000              .word 0
+                        .area data
+ 00FE                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 00FE                   .dbsym e SOUT0Bufptr _SOUT0Bufptr I
+ 00FE           _SIN1Buf::
+ 00FE                   .blkb 2
+                        .area idata
+ 00FE 0000              .byte 0,0
+                        .area data
+ 0100                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0100                   .blkb 78
+                        .area idata
+ 0100 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 013C 00000000000000000000      .word 0,0,0,0,0
+ 0146 0000000000000000  .byte 0,0,0,0,0,0,0,0
+                        .area data
+ 014E                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 014E                   .dbsym e SIN1Buf _SIN1Buf A[80:80]c
+ 014E           _SIN1Bufptr::
+ 014E                   .blkb 2
+                        .area idata
+ 014E 0000              .word 0
+                        .area data
+ 0150                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0150                   .dbsym e SIN1Bufptr _SIN1Bufptr I
+ 0150           _SOUT1Buf::
+ 0150                   .blkb 2
+                        .area idata
+ 0150 0000              .byte 0,0
+                        .area data
+ 0152                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0152                   .blkb 148
+                        .area idata
+ 0152 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 018E 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 01CA 00000000000000000000      .word 0,0,0,0,0
+ 01D4 00000000000000000000      .word 0,0,0,0,0
+ 01DE 0000000000000000  .byte 0,0,0,0,0,0,0,0
+                        .area data
+ 01E6                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 01E6                   .dbsym e SOUT1Buf _SOUT1Buf A[150:150]c
+ 01E6           _SOUT1Bufptr::
+ 01E6                   .blkb 2
+                        .area idata
+ 01E6 0000              .word 0
+                        .area data
+ 01E8                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 01E8                   .dbsym e SOUT1Bufptr _SOUT1Bufptr I
+                        .area text
+ 0000                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0000                   .dbfunc e DUMMY_ENTRY _DUMMY_ENTRY fV
+ 0000           _DUMMY_ENTRY::
+ 0000                   .dbline -1
+ 0000                   .dbline 70
+ 0000           ; #include "Interrupts.h"
+ 0000           ; #include "mc9s12a128.h"
+ 0000           ; #include "mco.h"
+ 0000           ; #include "mcohw.h"
+ 0000           ; #include "nodecfg.h"
+ 0000           ; #include "procimg.h"
+ 0000           ; #include "Subroutines.h"
+ 0000           ; #include "vectors.h"
+ 0000           ; #include "MenuFunctions.h"
+ 0000           ; 
+ 0000           ; unsigned int Titler_Timer;
+ 0000           ; 
+ 0000           ; char Seconds = 60;
+ 0000           ; 
+ 0000           ; int Tick = RTI_One_Sec;
+ 0000           ; unsigned int TC0_RCVD_Data;
+ 0000           ; 
+ 0000           ; char Gen_Flags;
+ 0000           ; 
+ 0000           ; unsigned int Timer1;
+ 0000           ; unsigned int Timer2;
+ 0000           ; unsigned int SC_Timeout;
+ 0000           ; int Update_Menu_Timer;
+ 0000           ; unsigned int InitTimer;
+ 0000           ; unsigned int BootUpTimer = RTI_One_Sec * 1.5;
+ 0000           ; unsigned int MenuTimer;
+ 0000           ; unsigned int WD_Timer;
+ 0000           ; unsigned int I2C_Timer;
+ 0000           ; 
+ 0000           ; //#define TEST_TIMER 1           
+ 0000           ; unsigned int TestTimer = 0;       //to use put TestTimer = 0; wherever you want to evaluate and monitor testTime 
+ 0000           ; float testTime = 0.0;
+ 0000           ; float storeTestTime = 0.0;        //used to save time values for evaluation; good for start/stop testTime monitoring
+ 0000           ; 
+ 0000           ; 
+ 0000           ; char fast_inc=0;
+ 0000           ; unsigned int IncSpeedUpTimer;
+ 0000           ; char IncSpeedUpCntr;
+ 0000           ; unsigned char IIC_restart;
+ 0000           ; unsigned char IIC_slave_read;
+ 0000           ; unsigned char IIC_num_TXbytes;
+ 0000           ; unsigned char IIC_num_RXbytes;
+ 0000           ; unsigned char IIC_done;
+ 0000           ; extern char IIC_addr;
+ 0000           ; char IICInBuf[IICInBufLen];
+ 0000           ; char IICOutBuf[IICOutBufLen];
+ 0000           ; char IICInBufptr;
+ 0000           ; char IICOutBufptr;
+ 0000           ; 
+ 0000           ; char SPI0InBuf[3];
+ 0000           ; int SPI0InBufptr = 0;
+ 0000           ; char SPI0OutBuf[3];
+ 0000           ; int SPI0OutBufptr = 0;
+ 0000           ; 
+ 0000           ; char SIN0Buf[SIN0BufLen] = "\0";
+ 0000           ; int SIN0Bufptr = 0;
+ 0000           ; char SOUT0Buf[SOUT0BufLen] = "\0";
+ 0000           ; int SOUT0Bufptr = 0;
+ 0000           ; 
+ 0000           ; char SIN1Buf[SIN1BufLen] = "\0";
+ 0000           ; int SIN1Bufptr = 0;
+ 0000           ; char SOUT1Buf[SOUT1BufLen] = "\0";
+ 0000           ; int SOUT1Bufptr = 0;
+ 0000           ; 
+ 0000           ; extern char wd_flag, wdInit, wdStarted;
+ 0000           ; 
+ 0000           ; extern unsigned int CamMenuTimer;
+ 0000           ; 
+ 0000           ; void DUMMY_ENTRY ( void )
+ 0000           ; {
+ 0000                   .dbline -2
+ 0000           L6:
+ 0000                   .dbline 0 ; func end
+ 0000 0B                rti
+ 0001                   .dbend
+ 0001                   .dbfunc e CANRxISR _CANRxISR fV
+ 0001                   .dbstruct 0 12 .1
+ 0001                   .dbfield 0 ID i
+ 0001                   .dbfield 2 LEN c
+ 0001                   .dbfield 3 dummy32bit c
+ 0001                   .dbfield 4 BUF A[8:8]c
+ 0001                   .dbend
+ 0001           ;         rxdata -> 2,SP
+ 0001           ;     Identifier -> 10,SP
+ 0001           ;    pReceiveBuf -> 14,SP
+ 0001           ;         length -> 16,SP
+ 0001           ;          index -> 17,SP
+ 0001           _CANRxISR::
+ 0001 1BF1EE            leas -18,S
+ 0004                   .dbline -1
+ 0004                   .dbline 74
+ 0004           ; }
+ 0004           ; 
+ 0004           ; void CANRxISR ( void )
+ 0004           ; {
+ 0004                   .dbline 80
+ 0004           ;       unsigned char length, index;
+ 0004           ;       unsigned char rxdata[8];
+ 0004           ;     UNSIGNED32 Identifier;
+ 0004           ;       CAN_MSG *pReceiveBuf;
+ 0004           ;       
+ 0004           ;     Identifier   = (UNSIGNED32)CANRXIDR0;
+ 0004 F60160            ldab 0x160
+ 0007 87                clra
+ 0008 160000            jsr int2long
+ 000B 3A                puld
+ 000C 6C8C              std 12,S
+ 000E 3A                puld
+ 000F 6C8C              std 12,S
+ 0011                   .dbline 81
+ 0011           ;     Identifier <<= 8;
+ 0011 EC8C              ldd 12,S
+ 0013 3B                pshd
+ 0014 EC8C              ldd 12,S
+ 0016 3B                pshd
+ 0017 CC0008            ldd #8
+ 001A 160000            jsr lsl4
+ 001D 3A                puld
+ 001E 6C8C              std 12,S
+ 0020 3A                puld
+ 0021 6C8C              std 12,S
+ 0023                   .dbline 82
+ 0023           ;     Identifier  |= (UNSIGNED32) CANRXIDR1;
+ 0023 EC8C              ldd 12,S
+ 0025 3B                pshd
+ 0026 EC8C              ldd 12,S
+ 0028 3B                pshd
+ 0029 F60161            ldab 0x161
+ 002C 87                clra
+ 002D 160000            jsr int2long
+ 0030 160000            jsr or4
+ 0033 3A                puld
+ 0034 6C8C              std 12,S
+ 0036 3A                puld
+ 0037 6C8C              std 12,S
+ 0039                   .dbline 83
+ 0039           ;     Identifier >>= 5;
+ 0039 EC8C              ldd 12,S
+ 003B 3B                pshd
+ 003C EC8C              ldd 12,S
+ 003E 3B                pshd
+ 003F CC0005            ldd #5
+ 0042 160000            jsr lsr4
+ 0045 3A                puld
+ 0046 6C8C              std 12,S
+ 0048 3A                puld
+ 0049 6C8C              std 12,S
+ 004B                   .dbline 85
+ 004B           ;       
+ 004B           ;       length = (CANRXDLR & 0x0f);
+ 004B F6016C            ldab 0x16c
+ 004E C40F              andb #15
+ 0050 6BF010            stab 16,S
+ 0053                   .dbline 86
+ 0053           ;       for ( index = 0; index < length; index++ )
+ 0053 69F011            clr 17,S
+ 0056 2021              bra L11
+ 0058           L8:
+ 0058                   .dbline 87
+ 0058           ;               *(UNSIGNED8 *)(pReceiveBuf->BUF+index) = *(&CANRXDSR0 + index);         /* Get received data */
+ 0058 EC8E              ldd 14,S
+ 005A C30004            addd #4
+ 005D B746              tfr D,Y
+ 005F E6F011            ldab 17,S
+ 0062 87                clra
+ 0063 6D80              sty 0,S
+ 0065 E380              addd 0,S
+ 0067 B746              tfr D,Y
+ 0069 E6F011            ldab 17,S
+ 006C 87                clra
+ 006D C30164            addd #356
+ 0070 B745              tfr D,X
+ 0072 E600              ldab 0,X
+ 0074 6B40              stab 0,Y
+ 0076           L9:
+ 0076                   .dbline 86
+ 0076 62F011            inc 17,S
+ 0079           L11:
+ 0079                   .dbline 86
+ 0079 E6F011            ldab 17,S
+ 007C E1F010            cmpb 16,S
+ 007F 25D7              blo L8
+ 0081                   .dbline 88
+ 0081           ;       CANRFLG = 0x01;                                                                                                                 /* Clear RXF */
+ 0081 180B010144        movb #1,0x144
+ 0086                   .dbline 90
+ 0086           ; 
+ 0086           ;     pReceiveBuf->ID = Identifier;
+ 0086 EC8C              ldd 12,S
+ 0088 3B                pshd
+ 0089 EC8C              ldd 12,S
+ 008B 3B                pshd
+ 008C 1B82              leas 2,S
+ 008E 31                puly
+ 008F EE8E              ldx 14,S
+ 0091 6D00              sty 0,X
+ 0093                   .dbline 91
+ 0093           ;     pReceiveBuf->LEN = length;
+ 0093 E6F010            ldab 16,S
+ 0096 B716              tfr B,Y
+ 0098 EC8E              ldd 14,S
+ 009A C30002            addd #2
+ 009D B745              tfr D,X
+ 009F B761              tfr Y,B
+ 00A1 6B00              stab 0,X
+ 00A3                   .dbline -2
+ 00A3           L7:
+ 00A3                   .dbline 0 ; func end
+ 00A3 1BF012            leas 18,S
+ 00A6 0B                rti
+ 00A7                   .dbsym l rxdata 2 A[8:8]c
+ 00A7                   .dbsym l Identifier 10 l
+ 00A7                   .dbsym l pReceiveBuf 14 pS[.1]
+ 00A7                   .dbsym l length 16 c
+ 00A7                   .dbsym l index 17 c
+ 00A7                   .dbend
+ 00A7                   .dbfunc e IRQ_Int_Handler _IRQ_Int_Handler fV
+ 00A7           _IRQ_Int_Handler::
+ 00A7                   .dbline -1
+ 00A7                   .dbline 96
+ 00A7           ; 
+ 00A7           ; }     
+ 00A7           ; 
+ 00A7           ; void IRQ_Int_Handler ( void )
+ 00A7           ; {
+ 00A7                   .dbline -2
+ 00A7           L12:
+ 00A7                   .dbline 0 ; func end
+ 00A7 0B                rti
+ 00A8                   .dbend
+ 00A8                   .dbfunc e IIC_Int_Handler _IIC_Int_Handler fV
+ 00A8           _IIC_Int_Handler::
+ 00A8 1B98              leas -8,S
+ 00AA                   .dbline -1
+ 00AA                   .dbline 100
+ 00AA           ; }
+ 00AA           ; 
+ 00AA           ; void IIC_Int_Handler(void)
+ 00AA           ; {
+ 00AA                   .dbline 101
+ 00AA           ;     IBSR |= 0x02;                                                                                     //clears interrupt flag (IBIF bit)
+ 00AA 1C00E302          bset 0xe3,#2
+ 00AE                   .dbline 103
+ 00AE           ; 
+ 00AE           ;       if(IBCR & IBCR_TXRX)   //transmit flag set
+ 00AE 1F00E21002        brclr 0xe2,#16,X0
+ 00B3 2004              bra X1
+ 00B5 182000BB  X0: lbra L14
+ 00B9           X1:
+ 00B9                   .dbline 104
+ 00B9           ;       {
+ 00B9                   .dbline 105
+ 00B9           ;         if(IIC_slave_read && IBDR == (IIC_addr | 0x01) && IIC_num_RXbytes)            
+ 00B9 F6002B            ldab _IIC_slave_read
+ 00BC C100              cmpb #0
+ 00BE 2734              beq L16
+ 00C0 F60000            ldab _IIC_addr
+ 00C3 CA01              orab #1
+ 00C5 B716              tfr B,Y
+ 00C7 F600E4            ldab 0xe4
+ 00CA 6D80              sty 0,S
+ 00CC E181              cmpb 1,S
+ 00CE 2624              bne L16
+ 00D0 F60029            ldab _IIC_num_RXbytes
+ 00D3 C100              cmpb #0
+ 00D5 271D              beq L16
+ 00D7                   .dbline 106
+ 00D7           ;         { 
+ 00D7                   .dbline 107
+ 00D7           ;                   IIC_slave_read = 0;
+ 00D7 79002B            clr _IIC_slave_read
+ 00DA                   .dbline 108
+ 00DA           ;               IBCR &= ~IBCR_TXRX;                                                   //set flag to receive
+ 00DA 1D00E210          bclr 0xe2,#16
+ 00DE                   .dbline 109
+ 00DE           ;             IICInBuf[IICInBufptr] = IBDR;                           //dummy read to clear TCF bit      
+ 00DE CD0018            ldy #_IICInBuf
+ 00E1 F60007            ldab _IICInBufptr
+ 00E4 87                clra
+ 00E5 6D80              sty 0,S
+ 00E7 E380              addd 0,S
+ 00E9 B746              tfr D,Y
+ 00EB F600E4            ldab 0xe4
+ 00EE 6B40              stab 0,Y
+ 00F0                   .dbline 110
+ 00F0           ;         }
+ 00F0 182000D2          lbra L15
+ 00F4           L16:
+ 00F4                   .dbline 112
+ 00F4           ;         else
+ 00F4           ;         {
+ 00F4                   .dbline 113
+ 00F4           ;             if(IICOutBufptr < IIC_num_TXbytes - 1 && !(IBSR & IBSR_RXAK))        //more bytes to send and ack received
+ 00F4 F6002A            ldab _IIC_num_TXbytes
+ 00F7 B716              tfr B,Y
+ 00F9 03                dey
+ 00FA F60006            ldab _IICOutBufptr
+ 00FD 6D80              sty 0,S
+ 00FF E181              cmpb 1,S
+ 0101 242B              bhs L18
+ 0103 F600E3            ldab 0xe3
+ 0106 C501              bitb #1
+ 0108 2624              bne L18
+ 010A                   .dbline 114
+ 010A           ;             {
+ 010A                   .dbline 115
+ 010A           ;                 IBDR = IICOutBuf[IICOutBufptr++];               //transmit
+ 010A F60006            ldab _IICOutBufptr
+ 010D 87                clra
+ 010E 6C86              std 6,S
+ 0110 B746              tfr D,Y
+ 0112 02                iny
+ 0113 B761              tfr Y,B
+ 0115 EE86              ldx 6,S
+ 0117 7B0006            stab _IICOutBufptr
+ 011A CD0008            ldy #_IICOutBuf
+ 011D B754              tfr X,D
+ 011F 6D80              sty 0,S
+ 0121 E380              addd 0,S
+ 0123 B746              tfr D,Y
+ 0125 180D4000E4        movb 0,Y,0xe4
+ 012A                   .dbline 116
+ 012A           ;             } 
+ 012A 18200098          lbra L15
+ 012E           L18:
+ 012E                   .dbline 117
+ 012E           ;             else if(IIC_restart)           //occurs on every read
+ 012E F6002C            ldab _IIC_restart
+ 0131 C100              cmpb #0
+ 0133 2734              beq L20
+ 0135                   .dbline 118
+ 0135           ;             {
+ 0135                   .dbline 119
+ 0135           ;                 IIC_restart = 0;
+ 0135 79002C            clr _IIC_restart
+ 0138                   .dbline 120
+ 0138           ;                 IBCR |= IBCR_RSTA;                                          //repeat START
+ 0138 1C00E204          bset 0xe2,#4
+ 013C                   .dbline 122
+ 013C           ;                               
+ 013C           ;                               if (IIC_num_RXbytes == 1)
+ 013C F60029            ldab _IIC_num_RXbytes
+ 013F C101              cmpb #1
+ 0141 2604              bne L22
+ 0143                   .dbline 123
+ 0143           ;                               IBCR |= IBCR_TXAK;  
+ 0143 1C00E208          bset 0xe2,#8
+ 0147           L22:
+ 0147                   .dbline 125
+ 0147           ;                               
+ 0147           ;                 IBDR = IICOutBuf[IICOutBufptr++];               //transmit
+ 0147 F60006            ldab _IICOutBufptr
+ 014A 87                clra
+ 014B 6C84              std 4,S
+ 014D B746              tfr D,Y
+ 014F 02                iny
+ 0150 B761              tfr Y,B
+ 0152 EE84              ldx 4,S
+ 0154 7B0006            stab _IICOutBufptr
+ 0157 CD0008            ldy #_IICOutBuf
+ 015A B754              tfr X,D
+ 015C 6D80              sty 0,S
+ 015E E380              addd 0,S
+ 0160 B746              tfr D,Y
+ 0162 180D4000E4        movb 0,Y,0xe4
+ 0167                   .dbline 126
+ 0167           ;             }
+ 0167 205D              bra L15
+ 0169           L20:
+ 0169                   .dbline 128
+ 0169           ;             else
+ 0169           ;             {
+ 0169                   .dbline 129
+ 0169           ;                 IBCR &= ~IBCR_MSSL;                                 //stop
+ 0169 1D00E220          bclr 0xe2,#32
+ 016D                   .dbline 130
+ 016D           ;                 IIC_done = 1;
+ 016D 180B010028        movb #1,_IIC_done
+ 0172                   .dbline 131
+ 0172           ;             }
+ 0172                   .dbline 132
+ 0172           ;         }
+ 0172                   .dbline 133
+ 0172           ;     }
+ 0172 2052              bra L15
+ 0174           L14:
+ 0174                   .dbline 135
+ 0174           ;     else      //receive flag set
+ 0174           ;     { 
+ 0174                   .dbline 136
+ 0174           ;          if(IICInBufptr == IIC_num_RXbytes - 1)           //last byte
+ 0174 F60029            ldab _IIC_num_RXbytes
+ 0177 B716              tfr B,Y
+ 0179 03                dey
+ 017A F60007            ldab _IICInBufptr
+ 017D 6D80              sty 0,S
+ 017F E181              cmpb 1,S
+ 0181 260F              bne L24
+ 0183                   .dbline 137
+ 0183           ;          {
+ 0183                   .dbline 138
+ 0183           ;              IBCR &= ~IBCR_MSSL;                            //Sets slave mode, generates STOP signal
+ 0183 1D00E220          bclr 0xe2,#32
+ 0187                   .dbline 139
+ 0187           ;                        IBCR &= ~IBCR_TXAK;                                              //ACK will be sent every 9th clock        
+ 0187 1D00E208          bclr 0xe2,#8
+ 018B                   .dbline 140
+ 018B           ;              IIC_done = 1;  
+ 018B 180B010028        movb #1,_IIC_done
+ 0190                   .dbline 141
+ 0190           ;          }    
+ 0190 2014              bra L25
+ 0192           L24:
+ 0192                   .dbline 142
+ 0192           ;          else if(IICInBufptr == IIC_num_RXbytes - 2)      //2nd to last byte
+ 0192 F60029            ldab _IIC_num_RXbytes
+ 0195 C002              subb #2
+ 0197 B716              tfr B,Y
+ 0199 F60007            ldab _IICInBufptr
+ 019C 6D80              sty 0,S
+ 019E E181              cmpb 1,S
+ 01A0 2604              bne L26
+ 01A2                   .dbline 143
+ 01A2           ;                        IBCR |= IBCR_TXAK;                           //No ACK sent on 9th clock        
+ 01A2 1C00E208          bset 0xe2,#8
+ 01A6           L26:
+ 01A6           L25:
+ 01A6                   .dbline 146
+ 01A6           ;             
+ 01A6           ;                       
+ 01A6           ;          IICInBuf[IICInBufptr++] = IBDR;                                //receive
+ 01A6 F60007            ldab _IICInBufptr
+ 01A9 87                clra
+ 01AA 6C82              std 2,S
+ 01AC B746              tfr D,Y
+ 01AE 02                iny
+ 01AF B761              tfr Y,B
+ 01B1 EE82              ldx 2,S
+ 01B3 7B0007            stab _IICInBufptr
+ 01B6 CD0018            ldy #_IICInBuf
+ 01B9 B754              tfr X,D
+ 01BB 6D80              sty 0,S
+ 01BD E380              addd 0,S
+ 01BF B746              tfr D,Y
+ 01C1 F600E4            ldab 0xe4
+ 01C4 6B40              stab 0,Y
+ 01C6                   .dbline 148
+ 01C6           ;               
+ 01C6           ;       }        
+ 01C6           L15:
+ 01C6                   .dbline -2
+ 01C6           L13:
+ 01C6                   .dbline 0 ; func end
+ 01C6 1B88              leas 8,S
+ 01C8 0B                rti
+ 01C9                   .dbend
+ 01C9                   .dbfunc e SPI0_Int_Handler _SPI0_Int_Handler fV
+ 01C9           _SPI0_Int_Handler::
+ 01C9 1B9E              leas -2,S
+ 01CB                   .dbline -1
+ 01CB                   .dbline 153
+ 01CB           ; }
+ 01CB           ; 
+ 01CB           ; 
+ 01CB           ; void SPI0_Int_Handler ( void ) 
+ 01CB           ; {
+ 01CB                   .dbline 155
+ 01CB           ;     //receive
+ 01CB           ;     if (SPI0SR & SPISR_SPIF)
+ 01CB 1F00DB8018        brclr 0xdb,#128,L29
+ 01D0                   .dbline 156
+ 01D0           ;       {
+ 01D0                   .dbline 157
+ 01D0           ;       SPI0InBuf[SPI0InBufptr] = SPI0DR;
+ 01D0 FC0010            ldd _SPI0InBufptr
+ 01D3 CD0003            ldy #_SPI0InBuf
+ 01D6 6D80              sty 0,S
+ 01D8 E380              addd 0,S
+ 01DA B746              tfr D,Y
+ 01DC F600DD            ldab 0xdd
+ 01DF 6B40              stab 0,Y
+ 01E1                   .dbline 158
+ 01E1           ;         SPI0InBufptr++;
+ 01E1 FD0010            ldy _SPI0InBufptr
+ 01E4 02                iny
+ 01E5 7D0010            sty _SPI0InBufptr
+ 01E8                   .dbline 159
+ 01E8           ;     }         
+ 01E8           L29:
+ 01E8                   .dbline 160
+ 01E8           ;       if (SPI0InBufptr == 2)
+ 01E8 FD0010            ldy _SPI0InBufptr
+ 01EB 8D0002            cpy #2
+ 01EE 2606              bne L31
+ 01F0                   .dbline 161
+ 01F0           ;               SPI0InBufptr = 1;
+ 01F0 180300010010      movw #1,_SPI0InBufptr
+ 01F6           L31:
+ 01F6                   .dbline 164
+ 01F6           ;               
+ 01F6           ;     //transmit
+ 01F6           ;     if (SPI0SR & SPISR_SPTEF)
+ 01F6 1F00DB2029        brclr 0xdb,#32,L33
+ 01FB                   .dbline 165
+ 01FB           ;     {
+ 01FB                   .dbline 166
+ 01FB           ;               if (SPI0OutBufptr == 0)
+ 01FB FD0012            ldy _SPI0OutBufptr
+ 01FE 8D0000            cpy #0
+ 0201 261A              bne L35
+ 0203                   .dbline 167
+ 0203           ;               { 
+ 0203                   .dbline 168
+ 0203           ;                   SPI0OutBufptr++;
+ 0203 FD0012            ldy _SPI0OutBufptr
+ 0206 02                iny
+ 0207 7D0012            sty _SPI0OutBufptr
+ 020A                   .dbline 169
+ 020A           ;           SPI0DR = SPI0OutBuf[SPI0OutBufptr];
+ 020A FC0012            ldd _SPI0OutBufptr
+ 020D CD0000            ldy #_SPI0OutBuf
+ 0210 6D80              sty 0,S
+ 0212 E380              addd 0,S
+ 0214 B746              tfr D,Y
+ 0216 180D4000DD        movb 0,Y,0xdd
+ 021B                   .dbline 170
+ 021B           ;         }     
+ 021B 2007              bra L36
+ 021D           L35:
+ 021D                   .dbline 172
+ 021D           ;               else
+ 021D           ;                  SPI0OutBufptr++;
+ 021D FD0012            ldy _SPI0OutBufptr
+ 0220 02                iny
+ 0221 7D0012            sty _SPI0OutBufptr
+ 0224           L36:
+ 0224                   .dbline 173
+ 0224           ;     }
+ 0224           L33:
+ 0224                   .dbline 175
+ 0224           ;       
+ 0224           ;       SPI0CR1 &= ~SPICR1_SPTIE;
+ 0224 1D00D820          bclr 0xd8,#32
+ 0228                   .dbline -2
+ 0228           L28:
+ 0228                   .dbline 0 ; func end
+ 0228 1B82              leas 2,S
+ 022A 0B                rti
+ 022B                   .dbend
+ 022B                   .dbfunc e TC0_Int_Handler _TC0_Int_Handler fV
+ 022B           _TC0_Int_Handler::
+ 022B                   .dbline -1
+ 022B                   .dbline 179
+ 022B           ; }
+ 022B           ; 
+ 022B           ; void TC0_Int_Handler ( void )  //Quad_A
+ 022B           ; {
+ 022B                   .dbline 180
+ 022B           ;        TFLG1 = 0x01;                  //clear interrupt  
+ 022B 180B01004E        movb #1,0x4e
+ 0230                   .dbline -2
+ 0230           L37:
+ 0230                   .dbline 0 ; func end
+ 0230 0B                rti
+ 0231                   .dbend
+ 0231                   .dbfunc e TC1_Int_Handler _TC1_Int_Handler fV
+ 0231           _TC1_Int_Handler::
+ 0231                   .dbline -1
+ 0231                   .dbline 185
+ 0231           ; }
+ 0231           ; 
+ 0231           ; 
+ 0231           ; void TC1_Int_Handler ( void )  //Quad_B
+ 0231           ; {
+ 0231                   .dbline 186
+ 0231           ;        TFLG1 = 0x02;                  //clear interrupt 
+ 0231 180B02004E        movb #2,0x4e
+ 0236                   .dbline -2
+ 0236           L38:
+ 0236                   .dbline 0 ; func end
+ 0236 0B                rti
+ 0237                   .dbend
+ 0237                   .dbfunc e TC2_Int_Handler _TC2_Int_Handler fV
+ 0237           _TC2_Int_Handler::
+ 0237                   .dbline -1
+ 0237                   .dbline 190
+ 0237           ; }
+ 0237           ; 
+ 0237           ; void TC2_Int_Handler ( void )
+ 0237           ; {
+ 0237                   .dbline 191
+ 0237           ;        TFLG1 = 0x04;                  //clear interrupt 
+ 0237 180B04004E        movb #4,0x4e
+ 023C                   .dbline -2
+ 023C           L39:
+ 023C                   .dbline 0 ; func end
+ 023C 0B                rti
+ 023D                   .dbend
+ 023D                   .dbfunc e TC3_Int_Handler _TC3_Int_Handler fV
+ 023D           _TC3_Int_Handler::
+ 023D                   .dbline -1
+ 023D                   .dbline 195
+ 023D           ; }
+ 023D           ; 
+ 023D           ; void TC3_Int_Handler ( void )
+ 023D           ; {
+ 023D                   .dbline 196
+ 023D           ;        TFLG1 = 0x08;                  //clear interrupt
+ 023D 180B08004E        movb #8,0x4e
+ 0242                   .dbline -2
+ 0242           L40:
+ 0242                   .dbline 0 ; func end
+ 0242 0B                rti
+ 0243                   .dbend
+ 0243                   .dbfunc e TC4_Int_Handler _TC4_Int_Handler fV
+ 0243           _TC4_Int_Handler::
+ 0243                   .dbline -1
+ 0243                   .dbline 200
+ 0243           ; }
+ 0243           ; 
+ 0243           ; void TC4_Int_Handler ( void )
+ 0243           ; {
+ 0243                   .dbline 201
+ 0243           ;        TFLG1 = 0x10;                  //clear interrupt 
+ 0243 180B10004E        movb #16,0x4e
+ 0248                   .dbline -2
+ 0248           L41:
+ 0248                   .dbline 0 ; func end
+ 0248 0B                rti
+ 0249                   .dbend
+ 0249                   .dbfunc e TC5_Int_Handler _TC5_Int_Handler fV
+ 0249           _TC5_Int_Handler::
+ 0249                   .dbline -1
+ 0249                   .dbline 205
+ 0249           ; }
+ 0249           ; 
+ 0249           ; void TC5_Int_Handler ( void )
+ 0249           ; {
+ 0249                   .dbline 206
+ 0249           ;        TFLG1 = 0x20;                  //clear interrupt 
+ 0249 180B20004E        movb #32,0x4e
+ 024E                   .dbline -2
+ 024E           L42:
+ 024E                   .dbline 0 ; func end
+ 024E 0B                rti
+ 024F                   .dbend
+ 024F                   .dbfunc e TC6_Int_Handler _TC6_Int_Handler fV
+ 024F           _TC6_Int_Handler::
+ 024F                   .dbline -1
+ 024F                   .dbline 210
+ 024F           ; }
+ 024F           ; 
+ 024F           ; void TC6_Int_Handler ( void )
+ 024F           ; {
+ 024F                   .dbline 211
+ 024F           ;        TFLG1 = 0x40;                  //clear interrupt 
+ 024F 180B40004E        movb #64,0x4e
+ 0254                   .dbline -2
+ 0254           L43:
+ 0254                   .dbline 0 ; func end
+ 0254 0B                rti
+ 0255                   .dbend
+ 0255                   .dbfunc e TC7_Int_Handler _TC7_Int_Handler fV
+ 0255           _TC7_Int_Handler::
+ 0255                   .dbline -1
+ 0255                   .dbline 215
+ 0255           ; }
+ 0255           ; 
+ 0255           ; void TC7_Int_Handler ( void )
+ 0255           ; {
+ 0255                   .dbline 216
+ 0255           ;        TFLG1 = 0x80;                  //clear interrupt 
+ 0255 180B80004E        movb #128,0x4e
+ 025A                   .dbline 217
+ 025A           ;        TC7 = TCNT + TC_1ms;
+ 025A FC0044            ldd 0x44
+ 025D C302ED            addd #749
+ 0260 7C005E            std 0x5e
+ 0263                   .dbline 218
+ 0263           ;      MCOHW_TimerISR();
+ 0263 4A000000          xcall $_MCOHW_TimerISR
+ 0267                   .dbline -2
+ 0267           L44:
+ 0267                   .dbline 0 ; func end
+ 0267 0B                rti
+ 0268                   .dbend
+ 0268                   .dbfunc e PTP_Int_Handler _PTP_Int_Handler fV
+ 0268           _PTP_Int_Handler::
+ 0268                   .dbline -1
+ 0268                   .dbline 222
+ 0268           ; }
+ 0268           ; 
+ 0268           ; void PTP_Int_Handler ( void )
+ 0268           ; {
+ 0268                   .dbline 223
+ 0268           ;      if (PIFP & 0x10)
+ 0268 1F025F1007        brclr 0x25f,#16,L46
+ 026D                   .dbline 224
+ 026D           ;        {
+ 026D                   .dbline 225
+ 026D           ;          PIFP = 0x10;        //clear interrupt 
+ 026D 180B10025F        movb #16,0x25f
+ 0272                   .dbline 226
+ 0272           ;        }
+ 0272 200A              bra L47
+ 0274           L46:
+ 0274                   .dbline 227
+ 0274           ;        else if (PIFP & 0x08)
+ 0274 1F025F0805        brclr 0x25f,#8,L48
+ 0279                   .dbline 228
+ 0279           ;        {
+ 0279                   .dbline 229
+ 0279           ;            PIFP = 0x08;        //clear interrupt 
+ 0279 180B08025F        movb #8,0x25f
+ 027E                   .dbline 230
+ 027E           ;        }
+ 027E           L48:
+ 027E           L47:
+ 027E                   .dbline -2
+ 027E           L45:
+ 027E                   .dbline 0 ; func end
+ 027E 0B                rti
+ 027F                   .dbend
+ 027F                   .dbfunc e RTI_Int_Handler _RTI_Int_Handler fV
+ 027F           _RTI_Int_Handler::
+ 027F 1B9C              leas -4,S
+ 0281                   .dbline -1
+ 0281                   .dbline 236
+ 0281           ;        
+ 0281           ;        
+ 0281           ; }
+ 0281           ; 
+ 0281           ; void RTI_Int_Handler ( void )
+ 0281           ; {
+ 0281                   .dbline 237
+ 0281           ;       CRGFLG = 0x80;          //clear interrupt
+ 0281 180B800037        movb #128,0x37
+ 0286                   .dbline 239
+ 0286           ; 
+ 0286           ;       if (Titler_Timer)
+ 0286 FD0043            ldy _Titler_Timer
+ 0289 8D0000            cpy #0
+ 028C 2707              beq L51
+ 028E                   .dbline 240
+ 028E           ;       {
+ 028E                   .dbline 241
+ 028E           ;               --Titler_Timer;
+ 028E FD0043            ldy _Titler_Timer
+ 0291 03                dey
+ 0292 7D0043            sty _Titler_Timer
+ 0295                   .dbline 242
+ 0295           ;       }
+ 0295           L51:
+ 0295                   .dbline 244
+ 0295           ; 
+ 0295           ;     if ( CamMenuTimer )
+ 0295 FD0000            ldy _CamMenuTimer
+ 0298 8D0000            cpy #0
+ 029B 2707              beq L53
+ 029D                   .dbline 245
+ 029D           ;     {  
+ 029D                   .dbline 246
+ 029D           ;               --CamMenuTimer;
+ 029D FD0000            ldy _CamMenuTimer
+ 02A0 03                dey
+ 02A1 7D0000            sty _CamMenuTimer
+ 02A4                   .dbline 247
+ 02A4           ;     }
+ 02A4           L53:
+ 02A4                   .dbline 249
+ 02A4           ;       
+ 02A4           ;       if ( SC_Timeout )
+ 02A4 FD003A            ldy _SC_Timeout
+ 02A7 8D0000            cpy #0
+ 02AA 2707              beq L55
+ 02AC                   .dbline 250
+ 02AC           ;       {
+ 02AC                   .dbline 251
+ 02AC           ;               --SC_Timeout;
+ 02AC FD003A            ldy _SC_Timeout
+ 02AF 03                dey
+ 02B0 7D003A            sty _SC_Timeout
+ 02B3                   .dbline 252
+ 02B3           ;       }
+ 02B3           L55:
+ 02B3                   .dbline 254
+ 02B3           ; 
+ 02B3           ;     if ( Timer1 )
+ 02B3 FD003E            ldy _Timer1
+ 02B6 8D0000            cpy #0
+ 02B9 2707              beq L57
+ 02BB                   .dbline 255
+ 02BB           ;     {
+ 02BB                   .dbline 256
+ 02BB           ;         --Timer1;
+ 02BB FD003E            ldy _Timer1
+ 02BE 03                dey
+ 02BF 7D003E            sty _Timer1
+ 02C2                   .dbline 257
+ 02C2           ;     }
+ 02C2           L57:
+ 02C2                   .dbline 259
+ 02C2           ;     
+ 02C2           ;     if ( Timer2 )
+ 02C2 FD003C            ldy _Timer2
+ 02C5 8D0000            cpy #0
+ 02C8 2707              beq L59
+ 02CA                   .dbline 260
+ 02CA           ;     {
+ 02CA                   .dbline 261
+ 02CA           ;         --Timer2;
+ 02CA FD003C            ldy _Timer2
+ 02CD 03                dey
+ 02CE 7D003C            sty _Timer2
+ 02D1                   .dbline 262
+ 02D1           ;     }
+ 02D1           L59:
+ 02D1                   .dbline 264
+ 02D1           ;     
+ 02D1           ;       if ( IncSpeedUpTimer )
+ 02D1 FD002E            ldy _IncSpeedUpTimer
+ 02D4 8D0000            cpy #0
+ 02D7 2707              beq L61
+ 02D9                   .dbline 265
+ 02D9           ;        --IncSpeedUpTimer;
+ 02D9 FD002E            ldy _IncSpeedUpTimer
+ 02DC 03                dey
+ 02DD 7D002E            sty _IncSpeedUpTimer
+ 02E0           L61:
+ 02E0                   .dbline 268
+ 02E0           ;     
+ 02E0           ;       
+ 02E0           ;       if(InitTimer)
+ 02E0 FD0036            ldy _InitTimer
+ 02E3 8D0000            cpy #0
+ 02E6 2707              beq L63
+ 02E8                   .dbline 269
+ 02E8           ;          --InitTimer; 
+ 02E8 FD0036            ldy _InitTimer
+ 02EB 03                dey
+ 02EC 7D0036            sty _InitTimer
+ 02EF           L63:
+ 02EF                   .dbline 271
+ 02EF           ;          
+ 02EF           ;       if (wdStarted)
+ 02EF F60000            ldab _wdStarted
+ 02F2 C100              cmpb #0
+ 02F4 2730              beq L65
+ 02F6                   .dbline 272
+ 02F6           ;       {
+ 02F6                   .dbline 273
+ 02F6           ;         if (WD_Timer)
+ 02F6 FD0032            ldy _WD_Timer
+ 02F9 8D0000            cpy #0
+ 02FC 2709              beq L67
+ 02FE                   .dbline 274
+ 02FE           ;            --WD_Timer;   
+ 02FE FD0032            ldy _WD_Timer
+ 0301 03                dey
+ 0302 7D0032            sty _WD_Timer
+ 0305 201F              bra L68
+ 0307           L67:
+ 0307                   .dbline 276
+ 0307           ;         else
+ 0307           ;         {
+ 0307                   .dbline 277
+ 0307           ;             if (wd_flag)
+ 0307 F60000            ldab _wd_flag
+ 030A C100              cmpb #0
+ 030C 2718              beq L69
+ 030E                   .dbline 278
+ 030E           ;             {
+ 030E                   .dbline 279
+ 030E           ;                 PORTE |= HW_COP;
+ 030E 1C000840          bset 0x8,#64
+ 0312                   .dbline 280
+ 0312           ;                 PORTE &= ~HW_COP;
+ 0312 1D000840          bclr 0x8,#64
+ 0316                   .dbline 282
+ 0316           ;         
+ 0316           ;                 if(!wdInit)
+ 0316 F60000            ldab _wdInit
+ 0319 C100              cmpb #0
+ 031B 2603              bne L71
+ 031D                   .dbline 283
+ 031D           ;                     wd_flag = 0;
+ 031D 790000            clr _wd_flag
+ 0320           L71:
+ 0320                   .dbline 285
+ 0320           ;                       
+ 0320           ;                       WD_Timer = HW_Watchdog_Time;    
+ 0320 180301E80032      movw #488,_WD_Timer
+ 0326                   .dbline 286
+ 0326           ;             }
+ 0326           L69:
+ 0326                   .dbline 287
+ 0326           ;         }     
+ 0326           L68:
+ 0326                   .dbline 288
+ 0326           ;       }
+ 0326           L65:
+ 0326                   .dbline 290
+ 0326           ;     
+ 0326           ;       if ( MenuTimer )
+ 0326 FD0034            ldy _MenuTimer
+ 0329 8D0000            cpy #0
+ 032C 2731              beq L73
+ 032E                   .dbline 291
+ 032E           ;       {
+ 032E                   .dbline 292
+ 032E           ;           MenuTimer--;
+ 032E FD0034            ldy _MenuTimer
+ 0331 03                dey
+ 0332 7D0034            sty _MenuTimer
+ 0335                   .dbline 294
+ 0335           ;               
+ 0335           ;         if ( !MenuTimer )
+ 0335 FD0034            ldy _MenuTimer
+ 0338 8D0000            cpy #0
+ 033B 2622              bne L75
+ 033D                   .dbline 295
+ 033D           ;         {
+ 033D                   .dbline 296
+ 033D           ;             if ( IncSpeedUpTimer )
+ 033D FD002E            ldy _IncSpeedUpTimer
+ 0340 8D0000            cpy #0
+ 0343 2705              beq L77
+ 0345                   .dbline 297
+ 0345           ;             {
+ 0345                   .dbline 298
+ 0345           ;                 IncSpeedUpCntr++;
+ 0345 72002D            inc _IncSpeedUpCntr
+ 0348                   .dbline 299
+ 0348           ;             }
+ 0348 2006              bra L78
+ 034A           L77:
+ 034A                   .dbline 301
+ 034A           ;             else
+ 034A           ;             {
+ 034A                   .dbline 302
+ 034A           ;                 IncSpeedUpCntr=0;
+ 034A 79002D            clr _IncSpeedUpCntr
+ 034D                   .dbline 303
+ 034D           ;                 fast_inc=0;
+ 034D 79000F            clr _fast_inc
+ 0350                   .dbline 304
+ 0350           ;             }
+ 0350           L78:
+ 0350                   .dbline 306
+ 0350           ;                 
+ 0350           ;             if ( IncSpeedUpCntr > IncSpeedUpCnt )
+ 0350 F6002D            ldab _IncSpeedUpCntr
+ 0353 C109              cmpb #9
+ 0355 2308              bls L79
+ 0357                   .dbline 307
+ 0357           ;             {
+ 0357                   .dbline 308
+ 0357           ;                 IncSpeedUpCntr--;
+ 0357 73002D            dec _IncSpeedUpCntr
+ 035A                   .dbline 309
+ 035A           ;                 fast_inc=1;
+ 035A 180B01000F        movb #1,_fast_inc
+ 035F                   .dbline 310
+ 035F           ;             }
+ 035F           L79:
+ 035F                   .dbline 311
+ 035F           ;         }      
+ 035F           L75:
+ 035F                   .dbline 312
+ 035F           ;       }
+ 035F           L73:
+ 035F                   .dbline 320
+ 035F           ;       
+ 035F           ;       #ifdef TEST_TIMER      
+ 035F           ;         TestTimer++;
+ 035F           ;               if (TestTimer != 0)
+ 035F           ;               testTime = (float)TestTimer/RTI_One_Sec;   
+ 035F           ;       #endif  
+ 035F           ;       
+ 035F           ;       if ( BootUpTimer )
+ 035F FD0003            ldy _BootUpTimer
+ 0362 8D0000            cpy #0
+ 0365 2707              beq L81
+ 0367                   .dbline 321
+ 0367           ;           BootUpTimer--;
+ 0367 FD0003            ldy _BootUpTimer
+ 036A 03                dey
+ 036B 7D0003            sty _BootUpTimer
+ 036E           L81:
+ 036E                   .dbline 323
+ 036E           ;               
+ 036E           ;       if ( Update_Menu_Timer > 0 )
+ 036E FD0038            ldy _Update_Menu_Timer
+ 0371 8D0000            cpy #0
+ 0374 2F07              ble L83
+ 0376                   .dbline 324
+ 0376           ;           Update_Menu_Timer--;
+ 0376 FD0038            ldy _Update_Menu_Timer
+ 0379 03                dey
+ 037A 7D0038            sty _Update_Menu_Timer
+ 037D           L83:
+ 037D                   .dbline 326
+ 037D           ;       
+ 037D           ;     if ( !(Tick--) )
+ 037D 1801820001        movw _Tick,2,S
+ 0382 ED82              ldy 2,S
+ 0384 03                dey
+ 0385 7D0001            sty _Tick
+ 0388 ED82              ldy 2,S
+ 038A 8D0000            cpy #0
+ 038D 2620              bne L85
+ 038F                   .dbline 327
+ 038F           ;     {
+ 038F                   .dbline 328
+ 038F           ;         Tick = RTI_One_Sec;
+ 038F 180303D00001      movw #976,_Tick
+ 0395                   .dbline 330
+ 0395           ;               
+ 0395           ;         if ( !(Seconds--) )
+ 0395 F60000            ldab _Seconds
+ 0398 87                clra
+ 0399 6C80              std 0,S
+ 039B B746              tfr D,Y
+ 039D 03                dey
+ 039E B761              tfr Y,B
+ 03A0 7B0000            stab _Seconds
+ 03A3 ED80              ldy 0,S
+ 03A5 8D0000            cpy #0
+ 03A8 2605              bne L87
+ 03AA                   .dbline 331
+ 03AA           ;             Seconds = 60;
+ 03AA 180B3C0000        movb #60,_Seconds
+ 03AF           L87:
+ 03AF                   .dbline 333
+ 03AF           ;        
+ 03AF           ;     }  
+ 03AF           L85:
+ 03AF                   .dbline -2
+ 03AF           L50:
+ 03AF                   .dbline 0 ; func end
+ 03AF 1B84              leas 4,S
+ 03B1 0B                rti
+ 03B2                   .dbend
+ 03B2                   .dbfunc e SCI0_Int_Handler _SCI0_Int_Handler fV
+ 03B2           ;        tmpchar -> 6,SP
+ 03B2           _SCI0_Int_Handler::
+ 03B2 1B99              leas -7,S
+ 03B4                   .dbline -1
+ 03B4                   .dbline 338
+ 03B4           ; }
+ 03B4           ; 
+ 03B4           ; void SCI0_Int_Handler ( void ) 
+ 03B4           ; 
+ 03B4           ; {
+ 03B4                   .dbline 342
+ 03B4           ; 
+ 03B4           ;        char tmpchar;
+ 03B4           ; 
+ 03B4           ;        if ( SCI0SR1 & SCI0SR1_RDRF )
+ 03B4 1F00CC2002        brclr 0xcc,#32,X2
+ 03B9 2004              bra X3
+ 03BB 18200064  X2: lbra L90
+ 03BF           X3:
+ 03BF                   .dbline 344
+ 03BF           ; 
+ 03BF           ;        {
+ 03BF                   .dbline 346
+ 03BF           ; 
+ 03BF           ;                tmpchar = SCI0DRL;
+ 03BF 18098600CF        movb 0xcf,6,S
+ 03C4                   .dbline 348
+ 03C4           ; 
+ 03C4           ;            if ( !(Gen_Flags & Gen_Flags_SIN0Rcvd) )
+ 03C4 F60040            ldab _Gen_Flags
+ 03C7 C502              bitb #2
+ 03C9 2658              bne L92
+ 03CB                   .dbline 350
+ 03CB           ;                       
+ 03CB           ;                {
+ 03CB                   .dbline 354
+ 03CB           ; 
+ 03CB           ;               
+ 03CB           ; 
+ 03CB           ;                           SIN0Buf [SIN0Bufptr++] = tmpchar;
+ 03CB 18018400AA        movw _SIN0Bufptr,4,S
+ 03D0 EC84              ldd 4,S
+ 03D2 ED84              ldy 4,S
+ 03D4 02                iny
+ 03D5 7D00AA            sty _SIN0Bufptr
+ 03D8 CD0014            ldy #_SIN0Buf
+ 03DB 6D80              sty 0,S
+ 03DD E380              addd 0,S
+ 03DF B746              tfr D,Y
+ 03E1 E686              ldab 6,S
+ 03E3 6B40              stab 0,Y
+ 03E5                   .dbline 356
+ 03E5           ; 
+ 03E5           ;               if ( SIN0Bufptr == SIN0BufLen-1 )
+ 03E5 FD00AA            ldy _SIN0Bufptr
+ 03E8 8D0095            cpy #149
+ 03EB 2615              bne L94
+ 03ED                   .dbline 358
+ 03ED           ; 
+ 03ED           ;               {
+ 03ED                   .dbline 360
+ 03ED           ; 
+ 03ED           ;                  Gen_Flags |= Gen_Flags_SIN0Rcvd;
+ 03ED 1C004002          bset _Gen_Flags,#2
+ 03F1                   .dbline 362
+ 03F1           ; 
+ 03F1           ;                  SIN0Buf [SIN0Bufptr] = '\0';
+ 03F1 FC00AA            ldd _SIN0Bufptr
+ 03F4 CD0014            ldy #_SIN0Buf
+ 03F7 6D80              sty 0,S
+ 03F9 E380              addd 0,S
+ 03FB B746              tfr D,Y
+ 03FD CC0000            ldd #0
+ 0400 6B40              stab 0,Y
+ 0402                   .dbline 364
+ 0402           ; 
+ 0402           ;               }
+ 0402           L94:
+ 0402                   .dbline 378
+ 0402           ; /*
+ 0402           ;               if ( tmpchar == '\r' )
+ 0402           ; 
+ 0402           ;               {
+ 0402           ; 
+ 0402           ;                  Gen_Flags |= Gen_Flags_SIN0Rcvd;
+ 0402           ; 
+ 0402           ;                  SIN0Buf [SIN0Bufptr] = '\0';
+ 0402           ; 
+ 0402           ;                          SIN0Bufptr = 0;
+ 0402           ; 
+ 0402           ;               }
+ 0402           ; */
+ 0402           ;                       if ( tmpchar == '\xFF')
+ 0402 E686              ldab 6,S
+ 0404 C1FF              cmpb #255
+ 0406 261B              bne L96
+ 0408                   .dbline 380
+ 0408           ;                       
+ 0408           ;                       {
+ 0408                   .dbline 381
+ 0408           ;                                       Gen_Flags |= Gen_Flags_SIN0Rcvd;
+ 0408 1C004002          bset _Gen_Flags,#2
+ 040C                   .dbline 382
+ 040C           ;                               SIN0Buf [SIN0Bufptr] = '\0';
+ 040C FC00AA            ldd _SIN0Bufptr
+ 040F CD0014            ldy #_SIN0Buf
+ 0412 6D80              sty 0,S
+ 0414 E380              addd 0,S
+ 0416 B746              tfr D,Y
+ 0418 CC0000            ldd #0
+ 041B 6B40              stab 0,Y
+ 041D                   .dbline 383
+ 041D           ;                                       SIN0Bufptr = 0;
+ 041D 1803000000AA      movw #0,_SIN0Bufptr
+ 0423                   .dbline 384
+ 0423           ;                       }
+ 0423           L96:
+ 0423                   .dbline 386
+ 0423           ; 
+ 0423           ;                 } 
+ 0423           L92:
+ 0423                   .dbline 388
+ 0423           ; 
+ 0423           ;        }
+ 0423           L90:
+ 0423                   .dbline 390
+ 0423           ; 
+ 0423           ;        if ( (SCI0SR1 & SCI0SR1_TDRE))// && (Gen_Flags & Gen_Flags_Xmt0) )
+ 0423 1F00CC8049        brclr 0xcc,#128,L98
+ 0428                   .dbline 392
+ 0428           ; 
+ 0428           ;        {
+ 0428                   .dbline 394
+ 0428           ; 
+ 0428           ;         if ( SOUT0Buf [SOUT0Bufptr-1] == '\xFF' && SOUT0Buf [SOUT0Bufptr] == '\0' )
+ 0428 FC00FC            ldd _SOUT0Bufptr
+ 042B CD00AB            ldy #_SOUT0Buf-1
+ 042E 6D80              sty 0,S
+ 0430 E380              addd 0,S
+ 0432 B746              tfr D,Y
+ 0434 E640              ldab 0,Y
+ 0436 C1FF              cmpb #255
+ 0438 261C              bne L100
+ 043A FC00FC            ldd _SOUT0Bufptr
+ 043D CD00AC            ldy #_SOUT0Buf
+ 0440 6D80              sty 0,S
+ 0442 E380              addd 0,S
+ 0444 B746              tfr D,Y
+ 0446 E640              ldab 0,Y
+ 0448 C100              cmpb #0
+ 044A 260A              bne L100
+ 044C                   .dbline 396
+ 044C           ; 
+ 044C           ;         {
+ 044C                   .dbline 398
+ 044C           ; 
+ 044C           ;             SCI0CR2 &= ~SCI0CR2_TIE;
+ 044C 1D00CB80          bclr 0xcb,#128
+ 0450                   .dbline 400
+ 0450           ; 
+ 0450           ;             Gen_Flags &= ~Gen_Flags_Xmt0;
+ 0450 1D004040          bclr _Gen_Flags,#64
+ 0454                   .dbline 402
+ 0454           ; 
+ 0454           ;         }
+ 0454 201B              bra L101
+ 0456           L100:
+ 0456                   .dbline 405
+ 0456           ;               else
+ 0456           ;               
+ 0456           ;               {
+ 0456                   .dbline 407
+ 0456           ; 
+ 0456           ;                       SCI0DRL = SOUT0Buf [SOUT0Bufptr++];
+ 0456 18018200FC        movw _SOUT0Bufptr,2,S
+ 045B EC82              ldd 2,S
+ 045D ED82              ldy 2,S
+ 045F 02                iny
+ 0460 7D00FC            sty _SOUT0Bufptr
+ 0463 CD00AC            ldy #_SOUT0Buf
+ 0466 6D80              sty 0,S
+ 0468 E380              addd 0,S
+ 046A B746              tfr D,Y
+ 046C 180D4000CF        movb 0,Y,0xcf
+ 0471                   .dbline 409
+ 0471           ; 
+ 0471           ;               }
+ 0471           L101:
+ 0471                   .dbline 411
+ 0471           ;               
+ 0471           ;        }
+ 0471           L98:
+ 0471                   .dbline -2
+ 0471           L89:
+ 0471                   .dbline 0 ; func end
+ 0471 1B87              leas 7,S
+ 0473 0B                rti
+ 0474                   .dbsym l tmpchar 6 c
+ 0474                   .dbend
+                        .area bss
+ 0000                   .dbfile C:\Dev\REV1~1.01\Interrupts.c
+ 0000           _SPI0OutBuf::
+ 0000                   .blkb 3
+ 0003                   .dbsym e SPI0OutBuf _SPI0OutBuf A[3:3]c
+ 0003           _SPI0InBuf::
+ 0003                   .blkb 3
+ 0006                   .dbsym e SPI0InBuf _SPI0InBuf A[3:3]c
+ 0006           _IICOutBufptr::
+ 0006                   .blkb 1
+ 0007                   .dbsym e IICOutBufptr _IICOutBufptr c
+ 0007           _IICInBufptr::
+ 0007                   .blkb 1
+ 0008                   .dbsym e IICInBufptr _IICInBufptr c
+ 0008           _IICOutBuf::
+ 0008                   .blkb 16
+ 0018                   .dbsym e IICOutBuf _IICOutBuf A[16:16]c
+ 0018           _IICInBuf::
+ 0018                   .blkb 16
+ 0028                   .dbsym e IICInBuf _IICInBuf A[16:16]c
+ 0028           _IIC_done::
+ 0028                   .blkb 1
+ 0029                   .dbsym e IIC_done _IIC_done c
+ 0029           _IIC_num_RXbytes::
+ 0029                   .blkb 1
+ 002A                   .dbsym e IIC_num_RXbytes _IIC_num_RXbytes c
+ 002A           _IIC_num_TXbytes::
+ 002A                   .blkb 1
+ 002B                   .dbsym e IIC_num_TXbytes _IIC_num_TXbytes c
+ 002B           _IIC_slave_read::
+ 002B                   .blkb 1
+ 002C                   .dbsym e IIC_slave_read _IIC_slave_read c
+ 002C           _IIC_restart::
+ 002C                   .blkb 1
+ 002D                   .dbsym e IIC_restart _IIC_restart c
+ 002D           _IncSpeedUpCntr::
+ 002D                   .blkb 1
+ 002E                   .dbsym e IncSpeedUpCntr _IncSpeedUpCntr c
+ 002E           _IncSpeedUpTimer::
+ 002E                   .blkb 2
+ 0030                   .dbsym e IncSpeedUpTimer _IncSpeedUpTimer i
+ 0030           _I2C_Timer::
+ 0030                   .blkb 2
+ 0032                   .dbsym e I2C_Timer _I2C_Timer i
+ 0032           _WD_Timer::
+ 0032                   .blkb 2
+ 0034                   .dbsym e WD_Timer _WD_Timer i
+ 0034           _MenuTimer::
+ 0034                   .blkb 2
+ 0036                   .dbsym e MenuTimer _MenuTimer i
+ 0036           _InitTimer::
+ 0036                   .blkb 2
+ 0038                   .dbsym e InitTimer _InitTimer i
+ 0038           _Update_Menu_Timer::
+ 0038                   .blkb 2
+ 003A                   .dbsym e Update_Menu_Timer _Update_Menu_Timer I
+ 003A           _SC_Timeout::
+ 003A                   .blkb 2
+ 003C                   .dbsym e SC_Timeout _SC_Timeout i
+ 003C           _Timer2::
+ 003C                   .blkb 2
+ 003E                   .dbsym e Timer2 _Timer2 i
+ 003E           _Timer1::
+ 003E                   .blkb 2
+ 0040                   .dbsym e Timer1 _Timer1 i
+ 0040           _Gen_Flags::
+ 0040                   .blkb 1
+ 0041                   .dbsym e Gen_Flags _Gen_Flags c
+ 0041           _TC0_RCVD_Data::
+ 0041                   .blkb 2
+ 0043                   .dbsym e TC0_RCVD_Data _TC0_RCVD_Data i
+ 0043           _Titler_Timer::
+ 0043                   .blkb 2
+ 0045                   .dbsym e Titler_Timer _Titler_Timer i

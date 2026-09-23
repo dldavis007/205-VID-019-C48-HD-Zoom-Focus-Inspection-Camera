@@ -1,0 +1,1450 @@
+                        .module mcohw.c
+                        .area text
+ 0000                   .dbfile ..\REV1~1.01\mcohw.c
+                        .area data
+ 0000                   .dbfile ..\REV1~1.01\mcohw.c
+ 0000           _gTimCnt::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 0000              .word 0
+                        .area data
+ 0002                   .dbfile ..\REV1~1.01\mcohw.c
+ 0002                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+ 0002                   .dbsym e gTimCnt _gTimCnt i
+ 0002           _gCANFilter::
+ 0002                   .blkb 1
+                        .area idata
+ 0002 00                .byte 0
+                        .area data
+ 0003                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+ 0003                   .dbsym e gCANFilter _gCANFilter c
+                        .area extcode(paged)
+ 0000                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+ 0000                   .dbfunc e set_screener_std _set_screener_std fV
+ 0000           ;       ID_Match -> 9,SP
+ 0000           ;        ID_Mask -> 7,SP
+ 0000           ;       Screener -> 3,SP
+ 0000           $_set_screener_std::
+ 0000 3B                pshd
+ 0001 1B9E              leas -2,S
+ 0003                   .dbline -1
+ 0003                   .dbline 72
+ 0003           ; /**************************************************************************
+ 0003           ; MODULE:    MCOHW
+ 0003           ; CONTAINS:  Preliminary, limited hardware driver implementation for
+ 0003           ;            the 2-Wire Controller
+ 0003           ;            This version re-uses functions provided by
+ 0003           ;            www.esacademy.com/faq/progs
+ 0003           ;            If you need a full-featured 8XC591 MicroCANopen driver, contact
+ 0003           ;            support@esacademy.com
+ 0003           ; COPYRIGHT: Embedded Systems Academy, Inc. 2002-2005.
+ 0003           ;            All rights reserved. www.microcanopen.com
+ 0003           ;            This software was written in accordance to the guidelines at
+ 0003           ;            www.esacademy.com/software/softwarestyleguide.pdf
+ 0003           ; DISCLAIM:  Read and understand our disclaimer before using this code!
+ 0003           ;            www.esacademy.com/disclaim.htm
+ 0003           ; LICENSE:   THIS IS THE EDUCATIONAL VERSION OF MICROCANOPEN
+ 0003           ;            See file license_educational.txt or
+ 0003           ;            www.microcanopen.com/license_educational.txt
+ 0003           ;            A commercial MicroCANopen license is available at
+ 0003           ;            www.CANopenStore.com
+ 0003           ; VERSION:   2.10, ESA 12-JAN-05
+ 0003           ;            $LastChangedDate: 2005-01-12 13:53:59 -0700 (Wed, 12 Jan 2005) $
+ 0003           ;            $LastChangedRevision: 48 $
+ 0003           ; ---------------------------------------------------------------------------
+ 0003           ; PRELIMINARY VERSION
+ 0003           ; 
+ 0003           ; Shortcomings:
+ 0003           ; Only supports up to 2 (out of 8 possible) receive filter
+ 0003           ;   => This version can only be used with a maximum of 2 RPDOs
+ 0003           ; 
+ 0003           ; Only supports a transmit queue of length "1"
+ 0003           ; If queue occupied, waits until it is clear
+ 0003           ; **************************************************************************/
+ 0003           ; 
+ 0003           ; #include "Camera.h"
+ 0003           ; #include "mc9s12a128.h"
+ 0003           ; #include "mcohw.h"
+ 0003           ; #include "Interrupts.h"
+ 0003           ; #include "Subroutines.h"
+ 0003           ; 
+ 0003           ; extern char Gen_Flags;
+ 0003           ; extern unsigned int Timer1;
+ 0003           ; 
+ 0003           ; // Global timer/conter variable, incremented every millisecond
+ 0003           ; UNSIGNED16 gTimCnt = 0;
+ 0003           ; 
+ 0003           ; // global can filter count
+ 0003           ; UNSIGNED8 gCANFilter = 0;
+ 0003           ; 
+ 0003           ; /**************************************************************************
+ 0003           ; DOES:    Sets one of the four screeners (acceptance filters) of
+ 0003           ;          the CAN controller.
+ 0003           ; CAUTION: Does assume the screeners are set-up to be used as "one
+ 0003           ;          long filter for standard messages"
+ 0003           ; RETURNS: nothing
+ 0003           ; **************************************************************************/
+ 0003           ; void set_screener_std
+ 0003           ;   (
+ 0003           ;   UNSIGNED8 Screener,  // 1 - 8, one of the 8 screeners
+ 0003           ;   UNSIGNED16 ID_Mask,   // Bit set: corresponding bit in ID is don't care
+ 0003           ;                   // Bit clear: corresponding bit in ID must match ID_Match
+ 0003           ;   UNSIGNED16 ID_Match  // ID_Match - Match/Code value for ID
+ 0003           ;   ) 
+ 0003           ;   //darrell
+ 0003           ;   //The following arguments are not used, this has been modified for 16 bit filters                                           
+ 0003           ;   //UNSIGNED8 B1_Mask,   // Bit set: cor. bit in data byte 1 is don't care
+ 0003           ;                   // Bit clear: cor. bit in data byte 1 must match B1_Match
+ 0003           ;   //UNSIGNED8 B1_Match,  // Match/Code value for data byte 1
+ 0003           ;   //UNSIGNED8 B2_Mask,   // Bit set: cor. bit in data byte 2 is don't care
+ 0003           ;                   // Bit clear: cor. bit in data byte 2 must match B2_Match
+ 0003           ;   //UNSIGNED8 B2_Match   // Match/Code value for data byte 2
+ 0003           ;   //)
+ 0003           ; {
+ 0003                   .dbline 74
+ 0003           ;    // ensure 0 <= screener <= 7
+ 0003           ;   Screener -= 1;
+ 0003 6383              dec 3,S
+ 0005                   .dbline 75
+ 0005           ;   Screener &= 0x7;
+ 0005 0D83F8            bclr 3,S,#248
+ 0008                   .dbline 80
+ 0008           ; 
+ 0008           ;   // Disable screener, match on any message
+ 0008           ;   //ID_Mask = 0xffff;
+ 0008           ;   
+ 0008           ;   switch (Screener)
+ 0008 E683              ldab 3,S
+ 000A 87                clra
+ 000B 6C80              std 0,S
+ 000D 8C0000            cpd #0
+ 0010 273D              beq L10
+ 0012 ED80              ldy 0,S
+ 0014 8D0001            cpy #1
+ 0017 274A              beq L11
+ 0019 ED80              ldy 0,S
+ 001B 8D0002            cpy #2
+ 001E 2757              beq L12
+ 0020 ED80              ldy 0,S
+ 0022 8D0003            cpy #3
+ 0025 2762              beq L13
+ 0027 ED80              ldy 0,S
+ 0029 8D0004            cpy #4
+ 002C 1827006B          lbeq L14
+ 0030 ED80              ldy 0,S
+ 0032 8D0005            cpy #5
+ 0035 18270074          lbeq L15
+ 0039 ED80              ldy 0,S
+ 003B 8D0006            cpy #6
+ 003E 1827007D          lbeq L16
+ 0042 ED80              ldy 0,S
+ 0044 8D0007            cpy #7
+ 0047 18270086          lbeq L17
+ 004B 18200092          lbra L7
+ 004F           L10:
+ 004F                   .dbline 84
+ 004F           ;   {
+ 004F           ;       case 0:
+ 004F           ;       
+ 004F           ;       CANIDMR0 = (UNSIGNED8) (ID_Mask >> 3);
+ 004F EC87              ldd 7,S
+ 0051 49                lsrd
+ 0052 49                lsrd
+ 0053 49                lsrd
+ 0054 7B0154            stab 0x154
+ 0057                   .dbline 87
+ 0057           ;       //CANIDMR0 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 0057           ;         
+ 0057           ;         CANIDAR0 = (UNSIGNED8) (ID_Match >> 3);
+ 0057 EC89              ldd 9,S
+ 0059 49                lsrd
+ 005A 49                lsrd
+ 005B 49                lsrd
+ 005C 7B0150            stab 0x150
+ 005F                   .dbline 89
+ 005F           ;         //CANIDAR0 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 005F           ;       break;
+ 005F 1820007E          lbra L8
+ 0063           L11:
+ 0063                   .dbline 93
+ 0063           ;       
+ 0063           ;       case 1:
+ 0063           ;       
+ 0063           ;       CANIDMR1 = (UNSIGNED8) (ID_Mask >> 3);
+ 0063 EC87              ldd 7,S
+ 0065 49                lsrd
+ 0066 49                lsrd
+ 0067 49                lsrd
+ 0068 7B0155            stab 0x155
+ 006B                   .dbline 96
+ 006B           ;       //CANIDMR1 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 006B           ;   
+ 006B           ;         CANIDAR1 = (UNSIGNED8) (ID_Match >> 3);
+ 006B EC89              ldd 9,S
+ 006D 49                lsrd
+ 006E 49                lsrd
+ 006F 49                lsrd
+ 0070 7B0151            stab 0x151
+ 0073                   .dbline 98
+ 0073           ;         //CANIDAR1 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 0073           ;       break;
+ 0073 1820006A          lbra L8
+ 0077           L12:
+ 0077                   .dbline 102
+ 0077           ;               
+ 0077           ;       case 2:
+ 0077           ;       
+ 0077           ;       CANIDMR2 = (UNSIGNED8) (ID_Mask >> 3);
+ 0077 EC87              ldd 7,S
+ 0079 49                lsrd
+ 007A 49                lsrd
+ 007B 49                lsrd
+ 007C 7B0156            stab 0x156
+ 007F                   .dbline 105
+ 007F           ;       //CANIDMR2 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 007F           ;   
+ 007F           ;         CANIDAR2 = (UNSIGNED8) (ID_Match >> 3);
+ 007F EC89              ldd 9,S
+ 0081 49                lsrd
+ 0082 49                lsrd
+ 0083 49                lsrd
+ 0084 7B0152            stab 0x152
+ 0087                   .dbline 107
+ 0087           ;         //CANIDAR2 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 0087           ;       break;
+ 0087 2058              bra L8
+ 0089           L13:
+ 0089                   .dbline 111
+ 0089           ;               
+ 0089           ;       case 3:
+ 0089           ;       
+ 0089           ;       CANIDMR3 = (UNSIGNED8) (ID_Mask >> 3);
+ 0089 EC87              ldd 7,S
+ 008B 49                lsrd
+ 008C 49                lsrd
+ 008D 49                lsrd
+ 008E 7B0157            stab 0x157
+ 0091                   .dbline 114
+ 0091           ;       //CANIDMR3 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 0091           ;   
+ 0091           ;         CANIDAR3 = (UNSIGNED8) (ID_Match >> 3);
+ 0091 EC89              ldd 9,S
+ 0093 49                lsrd
+ 0094 49                lsrd
+ 0095 49                lsrd
+ 0096 7B0153            stab 0x153
+ 0099                   .dbline 116
+ 0099           ;         //CANIDAR3 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 0099           ;       break;          
+ 0099 2046              bra L8
+ 009B           L14:
+ 009B                   .dbline 120
+ 009B           ;               
+ 009B           ;       case 4:
+ 009B           ;       
+ 009B           ;       CANIDMR4 = (UNSIGNED8) (ID_Mask >> 3);
+ 009B EC87              ldd 7,S
+ 009D 49                lsrd
+ 009E 49                lsrd
+ 009F 49                lsrd
+ 00A0 7B015C            stab 0x15c
+ 00A3                   .dbline 123
+ 00A3           ;       //CANIDMR4 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 00A3           ;   
+ 00A3           ;         CANIDAR4 = (UNSIGNED8) (ID_Match >> 3);
+ 00A3 EC89              ldd 9,S
+ 00A5 49                lsrd
+ 00A6 49                lsrd
+ 00A7 49                lsrd
+ 00A8 7B0158            stab 0x158
+ 00AB                   .dbline 125
+ 00AB           ;         //CANIDAR4 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 00AB           ;       break;          
+ 00AB 2034              bra L8
+ 00AD           L15:
+ 00AD                   .dbline 129
+ 00AD           ;               
+ 00AD           ;       case 5:
+ 00AD           ;       
+ 00AD           ;       CANIDMR5 = (UNSIGNED8) (ID_Mask >> 3);
+ 00AD EC87              ldd 7,S
+ 00AF 49                lsrd
+ 00B0 49                lsrd
+ 00B1 49                lsrd
+ 00B2 7B015D            stab 0x15d
+ 00B5                   .dbline 132
+ 00B5           ;       //CANIDMR5 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 00B5           ;   
+ 00B5           ;         CANIDAR5 = (UNSIGNED8) (ID_Match >> 3);
+ 00B5 EC89              ldd 9,S
+ 00B7 49                lsrd
+ 00B8 49                lsrd
+ 00B9 49                lsrd
+ 00BA 7B0159            stab 0x159
+ 00BD                   .dbline 134
+ 00BD           ;         //CANIDAR5 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 00BD           ;       break;          
+ 00BD 2022              bra L8
+ 00BF           L16:
+ 00BF                   .dbline 138
+ 00BF           ;               
+ 00BF           ;       case 6:
+ 00BF           ;       
+ 00BF           ;       CANIDMR6 = (UNSIGNED8) (ID_Mask >> 3);
+ 00BF EC87              ldd 7,S
+ 00C1 49                lsrd
+ 00C2 49                lsrd
+ 00C3 49                lsrd
+ 00C4 7B015E            stab 0x15e
+ 00C7                   .dbline 141
+ 00C7           ;       //CANIDMR6 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 00C7           ;   
+ 00C7           ;         CANIDAR6 = (UNSIGNED8) (ID_Match >> 3);
+ 00C7 EC89              ldd 9,S
+ 00C9 49                lsrd
+ 00CA 49                lsrd
+ 00CB 49                lsrd
+ 00CC 7B015A            stab 0x15a
+ 00CF                   .dbline 143
+ 00CF           ;         //CANIDAR6 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 00CF           ;       break;          
+ 00CF 2010              bra L8
+ 00D1           L17:
+ 00D1                   .dbline 147
+ 00D1           ;               
+ 00D1           ;       case 7:
+ 00D1           ;       
+ 00D1           ;       CANIDMR7 = (UNSIGNED8) (ID_Mask >> 3);
+ 00D1 EC87              ldd 7,S
+ 00D3 49                lsrd
+ 00D4 49                lsrd
+ 00D5 49                lsrd
+ 00D6 7B015F            stab 0x15f
+ 00D9                   .dbline 150
+ 00D9           ;       //CANIDMR7 = (UNSIGNED8) (((ID_Mask & 0x07) << 5) | 0x1F);
+ 00D9           ;   
+ 00D9           ;         CANIDAR7 = (UNSIGNED8) (ID_Match >> 3);
+ 00D9 EC89              ldd 9,S
+ 00DB 49                lsrd
+ 00DC 49                lsrd
+ 00DD 49                lsrd
+ 00DE 7B015B            stab 0x15b
+ 00E1                   .dbline 152
+ 00E1           ;         //CANIDAR7 = (UNSIGNED8) (ID_Match & 0x07) << 5;
+ 00E1           ;       break;          
+ 00E1           L7:
+ 00E1           L8:
+ 00E1                   .dbline -2
+ 00E1           L6:
+ 00E1                   .dbline 0 ; func end
+ 00E1 1B84              leas 4,S
+ 00E3 0A                rtc
+ 00E4                   .dbsym l ID_Match 9 i
+ 00E4                   .dbsym l ID_Mask 7 i
+ 00E4                   .dbsym l Screener 3 c
+ 00E4                   .dbend
+ 00E4                   .dbfunc e MCOHW_PullMessage _MCOHW_PullMessage fc
+ 00E4                   .dbstruct 0 12 .1
+ 00E4                   .dbfield 0 ID i
+ 00E4                   .dbfield 2 LEN c
+ 00E4                   .dbfield 3 dummy32bit c
+ 00E4                   .dbfield 4 BUF A[8:8]c
+ 00E4                   .dbend
+ 00E4           ;     Identifier -> 2,SP
+ 00E4           ;         Length -> 6,SP
+ 00E4           ;              i -> 7,SP
+ 00E4           ;    pReceiveBuf -> 8,SP
+ 00E4           $_MCOHW_PullMessage::
+ 00E4 3B                pshd
+ 00E5 1B98              leas -8,S
+ 00E7                   .dbline -1
+ 00E7                   .dbline 242
+ 00E7           ;   }
+ 00E7           ; }
+ 00E7           ; 
+ 00E7           ; 
+ 00E7           ; /**************************************************************************
+ 00E7           ; DOES:    Sets one of the eight screeners (acceptance filters) of
+ 00E7           ;          the CAN controller.
+ 00E7           ; CAUTION: Does assume the screeners are set-up to be used as "eight
+ 00E7           ;          short filters for upper 8 bits of short message"
+ 00E7           ; RETURNS: nothing
+ 00E7           ; **************************************************************************/
+ 00E7           ; /*
+ 00E7           ; void set_screener_std
+ 00E7           ;   (
+ 00E7           ;   UNSIGNED8 Screener,  // 1 - 4, one of the four screeners
+ 00E7           ;   UNSIGNED8 ID_Mask,   // Bit set: corresponding bit in ID is don't care
+ 00E7           ;                   // Bit clear: corresponding bit in ID must match ID_Match
+ 00E7           ;   UNSIGNED8 ID_Match  // ID_Match - Match/Code value for ID
+ 00E7           ;   ) 
+ 00E7           ;   //darrell
+ 00E7           ;   //The following arguments are not used, this has been modified for 16 bit filters                                           
+ 00E7           ;   //UNSIGNED8 B1_Mask,   // Bit set: cor. bit in data byte 1 is don't care
+ 00E7           ;                   // Bit clear: cor. bit in data byte 1 must match B1_Match
+ 00E7           ;   //UNSIGNED8 B1_Match,  // Match/Code value for data byte 1
+ 00E7           ;   //UNSIGNED8 B2_Mask,   // Bit set: cor. bit in data byte 2 is don't care
+ 00E7           ;                   // Bit clear: cor. bit in data byte 2 must match B2_Match
+ 00E7           ;   //UNSIGNED8 B2_Match   // Match/Code value for data byte 2
+ 00E7           ;   //)
+ 00E7           ; {
+ 00E7           ;    // ensure 0 <= screener <= 7
+ 00E7           ;   Screener -= 1;
+ 00E7           ;   Screener &= 0x7;
+ 00E7           ; 
+ 00E7           ;   switch (Screener)
+ 00E7           ;   {
+ 00E7           ;       case 0:
+ 00E7           ;       CANIDMR0 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR0 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;       
+ 00E7           ;       case 1: 
+ 00E7           ;       CANIDMR1 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR1 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;               
+ 00E7           ;       case 2:
+ 00E7           ;       CANIDMR2 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR2 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;               
+ 00E7           ;       case 3:
+ 00E7           ;       CANIDMR3 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR3 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;  
+ 00E7           ;               
+ 00E7           ;       case 4:
+ 00E7           ;       CANIDMR4 = (UNSIGNED8) (ID_Mask >> 3);    
+ 00E7           ;         CANIDAR4 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;       
+ 00E7           ;       case 5:
+ 00E7           ;       CANIDMR5 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR5 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;               
+ 00E7           ;       case 6:
+ 00E7           ;       CANIDMR6 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR6 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;
+ 00E7           ;               
+ 00E7           ;       case 7:
+ 00E7           ;       CANIDMR7 = (UNSIGNED8) (ID_Mask >> 3);
+ 00E7           ;         CANIDAR7 = (UNSIGNED8) (ID_Match >> 3);
+ 00E7           ;       break;          
+ 00E7           ;   }
+ 00E7           ; }
+ 00E7           ; */
+ 00E7           ; 
+ 00E7           ; /**************************************************************************
+ 00E7           ; DOES:    Gets the next received CAN message and places it in
+ 00E7           ;          a receive buffer                                         
+ 00E7           ; RETURNS: 0 if no message received, 1 if message received and      
+ 00E7           ;          copied to the buffer                                     
+ 00E7           ; **************************************************************************/
+ 00E7           ; UNSIGNED8 MCOHW_PullMessage
+ 00E7           ;   (
+ 00E7           ;   CAN_MSG *pReceiveBuf  // pointer to a single message sized buffer
+ 00E7           ;                                 // to hold the received message
+ 00E7           ;   )
+ 00E7           ; {
+ 00E7                   .dbline 249
+ 00E7           ;   // variable declarations
+ 00E7           ;   UNSIGNED32 Identifier;
+ 00E7           ;   UNSIGNED8  Length;
+ 00E7           ;   UNSIGNED8  i;
+ 00E7           ; 
+ 00E7           ;   // Check the CAN status register for received message
+ 00E7           ;   if ( CANRFLG & 0x01)
+ 00E7 1F01440102        brclr 0x144,#1,X0
+ 00EC 2004              bra X1
+ 00EE 182000A0  X0: lbra L19
+ 00F2           X1:
+ 00F2                   .dbline 250
+ 00F2           ;   {
+ 00F2                   .dbline 253
+ 00F2           ;     // Message received!
+ 00F2           ; 
+ 00F2           ;     Identifier   = (UNSIGNED32)CANRXIDR0;
+ 00F2 F60160            ldab 0x160
+ 00F5 87                clra
+ 00F6 160000            jsr int2long
+ 00F9 3A                puld
+ 00FA 6C84              std 4,S
+ 00FC 3A                puld
+ 00FD 6C84              std 4,S
+ 00FF                   .dbline 254
+ 00FF           ;     Identifier <<= 8;
+ 00FF EC84              ldd 4,S
+ 0101 3B                pshd
+ 0102 EC84              ldd 4,S
+ 0104 3B                pshd
+ 0105 CC0008            ldd #8
+ 0108 160000            jsr lsl4
+ 010B 3A                puld
+ 010C 6C84              std 4,S
+ 010E 3A                puld
+ 010F 6C84              std 4,S
+ 0111                   .dbline 255
+ 0111           ;     Identifier  |= (UNSIGNED32) CANRXIDR1;
+ 0111 EC84              ldd 4,S
+ 0113 3B                pshd
+ 0114 EC84              ldd 4,S
+ 0116 3B                pshd
+ 0117 F60161            ldab 0x161
+ 011A 87                clra
+ 011B 160000            jsr int2long
+ 011E 160000            jsr or4
+ 0121 3A                puld
+ 0122 6C84              std 4,S
+ 0124 3A                puld
+ 0125 6C84              std 4,S
+ 0127                   .dbline 256
+ 0127           ;     Identifier >>= 5;
+ 0127 EC84              ldd 4,S
+ 0129 3B                pshd
+ 012A EC84              ldd 4,S
+ 012C 3B                pshd
+ 012D CC0005            ldd #5
+ 0130 160000            jsr lsr4
+ 0133 3A                puld
+ 0134 6C84              std 4,S
+ 0136 3A                puld
+ 0137 6C84              std 4,S
+ 0139                   .dbline 258
+ 0139           ;       
+ 0139           ;       Length = (CANRXDLR & 0x0f);
+ 0139 F6016C            ldab 0x16c
+ 013C C40F              andb #15
+ 013E 6B86              stab 6,S
+ 0140                   .dbline 259
+ 0140           ;       for ( i = 0; i < Length; i++ )
+ 0140 6987              clr 7,S
+ 0142 201E              bra L24
+ 0144           L21:
+ 0144                   .dbline 260
+ 0144           ;               *(UNSIGNED8 *)(pReceiveBuf->BUF+i) = *(&CANRXDSR0 + i);         /* Get received data */
+ 0144 EC88              ldd 8,S
+ 0146 C30004            addd #4
+ 0149 B746              tfr D,Y
+ 014B E687              ldab 7,S
+ 014D 87                clra
+ 014E 6D80              sty 0,S
+ 0150 E380              addd 0,S
+ 0152 B746              tfr D,Y
+ 0154 E687              ldab 7,S
+ 0156 87                clra
+ 0157 C30164            addd #356
+ 015A B745              tfr D,X
+ 015C E600              ldab 0,X
+ 015E 6B40              stab 0,Y
+ 0160           L22:
+ 0160                   .dbline 259
+ 0160 6287              inc 7,S
+ 0162           L24:
+ 0162                   .dbline 259
+ 0162 E687              ldab 7,S
+ 0164 E186              cmpb 6,S
+ 0166 25DC              blo L21
+ 0168                   .dbline 261
+ 0168           ;       CANRFLG = 0x01;                                                                                                                 /* Clear RXF */
+ 0168 180B010144        movb #1,0x144
+ 016D                   .dbline 263
+ 016D           ; 
+ 016D           ;     pReceiveBuf->ID = Identifier;
+ 016D EC84              ldd 4,S
+ 016F 3B                pshd
+ 0170 EC84              ldd 4,S
+ 0172 3B                pshd
+ 0173 1B82              leas 2,S
+ 0175 31                puly
+ 0176 EE88              ldx 8,S
+ 0178 6D00              sty 0,X
+ 017A                   .dbline 264
+ 017A           ;     pReceiveBuf->LEN = Length;
+ 017A E686              ldab 6,S
+ 017C B716              tfr B,Y
+ 017E EC88              ldd 8,S
+ 0180 C30002            addd #2
+ 0183 B745              tfr D,X
+ 0185 B761              tfr Y,B
+ 0187 6B00              stab 0,X
+ 0189                   .dbline 267
+ 0189           ;       
+ 0189           ;       // release receive buffer
+ 0189           ;       CANRFLG |= 0x01;
+ 0189 1C014401          bset 0x144,#1
+ 018D                   .dbline 270
+ 018D           ;               
+ 018D           ;       // return 1, message received   
+ 018D           ;     return (1);
+ 018D CC0001            ldd #1
+ 0190 2003              bra L18
+ 0192           L19:
+ 0192                   .dbline 273
+ 0192           ;   }
+ 0192           ;   else 
+ 0192           ;   {
+ 0192                   .dbline 275
+ 0192           ;     // return 0, no message received
+ 0192           ;     return (0);
+ 0192 CC0000            ldd #0
+ 0195                   .dbline -2
+ 0195           L18:
+ 0195                   .dbline 0 ; func end
+ 0195 1B8A              leas 10,S
+ 0197 0A                rtc
+ 0198                   .dbsym l Identifier 2 l
+ 0198                   .dbsym l Length 6 c
+ 0198                   .dbsym l i 7 c
+ 0198                   .dbsym l pReceiveBuf 8 pS[.1]
+ 0198                   .dbend
+ 0198                   .dbfunc e MCOHW_PushMessage _MCOHW_PushMessage fc
+ 0198           ;     Identifier -> 2,SP
+ 0198           ;       priority -> 6,SP
+ 0198           ;         Length -> 7,SP
+ 0198           ;       txbuffer -> 8,SP
+ 0198           ;              i -> 9,SP
+ 0198           ;   pTransmitBuf -> 10,SP
+ 0198           $_MCOHW_PushMessage::
+ 0198 3B                pshd
+ 0199 1B96              leas -10,S
+ 019B                   .dbline -1
+ 019B                   .dbline 290
+ 019B           ;   }
+ 019B           ;   
+ 019B           ; }
+ 019B           ; 
+ 019B           ; /**************************************************************************
+ 019B           ; DOES:    Transmits a CAN message                                  
+ 019B           ; RETURNS: 0 if the message could not be transmitted, 1 if the      
+ 019B           ;          message was transmitted                                  
+ 019B           ; **************************************************************************/
+ 019B           ; UNSIGNED8 MCOHW_PushMessage
+ 019B           ;   (
+ 019B           ;   CAN_MSG *pTransmitBuf  // pointer to buffer containing CAN
+ 019B           ;                                  // message to transmit
+ 019B           ;   )
+ 019B           ; {
+ 019B                   .dbline 293
+ 019B           ;  
+ 019B           ;   unsigned char txbuffer;
+ 019B           ;   unsigned char priority = 0;
+ 019B 6986              clr 6,S
+ 019D                   .dbline 303
+ 019D           ;   // CAN message identifier
+ 019D           ;   UNSIGNED32 Identifier;
+ 019D           ;   // length of data frame
+ 019D           ;   UNSIGNED8  Length;
+ 019D           ;   // local loop counter
+ 019D           ;   UNSIGNED8  i;
+ 019D           ; 
+ 019D           ;       
+ 019D           ;     // Prepare length code and identifier.
+ 019D           ;       Length     = pTransmitBuf->LEN;
+ 019D EC8A              ldd 10,S
+ 019F C30002            addd #2
+ 01A2 B746              tfr D,Y
+ 01A4 180A4087          movb 0,Y,7,S
+ 01A8                   .dbline 304
+ 01A8           ;       Identifier = (pTransmitBuf->ID << 5);
+ 01A8 CE0005            ldx #5
+ 01AB ECF3000A          ldd [10,S]
+ 01AF 160000            jsr lsl16
+ 01B2 B746              tfr D,Y
+ 01B4 35                pshy
+ 01B5 1800AE0000        movw #0,2,-S
+ 01BA 3A                puld
+ 01BB 6C84              std 4,S
+ 01BD 3A                puld
+ 01BE 6C84              std 4,S
+ 01C0                   .dbline 308
+ 01C0           ; 
+ 01C0           ;       
+ 01C0           ;     // Wait until write access to CAN controller buffer is allowed 
+ 01C0           ;       Timer1 = .01 * RTI_One_Sec;
+ 01C0 180300090000      movw #9,_Timer1
+ 01C6           L26:
+ 01C6                   .dbline 309
+ 01C6           ;       while ( !CANTFLG   && Timer1 );                                                  /* Is Transmit Buffer full?? */
+ 01C6           L27:
+ 01C6                   .dbline 309
+ 01C6 F60146            ldab 0x146
+ 01C9 C100              cmpb #0
+ 01CB 2608              bne L29
+ 01CD FD0000            ldy _Timer1
+ 01D0 8D0000            cpy #0
+ 01D3 26F1              bne L26
+ 01D5           L29:
+ 01D5                   .dbline 310
+ 01D5           ;       if ( !CANTFLG )                                                                                  /* Is Transmit Buffer full?? */
+ 01D5 F60146            ldab 0x146
+ 01D8 C100              cmpb #0
+ 01DA 2611              bne L30
+ 01DC                   .dbline 311
+ 01DC           ;       {
+ 01DC                   .dbline 312
+ 01DC           ;           ARMCOP = 0x55;
+ 01DC 180B55003F        movb #85,0x3f
+ 01E1                   .dbline 313
+ 01E1           ;               ARMCOP = 0xAA;
+ 01E1 180BAA003F        movb #170,0x3f
+ 01E6                   .dbline 314
+ 01E6           ;           return 0;
+ 01E6 CC0000            ldd #0
+ 01E9 18200092          lbra L25
+ 01ED           L30:
+ 01ED                   .dbline 317
+ 01ED           ;       }
+ 01ED           ;          
+ 01ED           ;       CANTBSEL = CANTFLG;                                                                      /* Select lowest empty buffer */
+ 01ED 180C0146014A      movb 0x146,0x14a
+ 01F3                   .dbline 318
+ 01F3           ;       txbuffer = CANTBSEL;                                                             /* Backup selected buffer */
+ 01F3 180988014A        movb 0x14a,8,S
+ 01F8                   .dbline 320
+ 01F8           ;       
+ 01F8           ;       *((unsigned int *) ((unsigned int)(&CANTXIDR0))) = (unsigned int)Identifier;
+ 01F8 EC84              ldd 4,S
+ 01FA 3B                pshd
+ 01FB EC84              ldd 4,S
+ 01FD 3B                pshd
+ 01FE 1B82              leas 2,S
+ 0200 31                puly
+ 0201 7D0170            sty 0x170
+ 0204                   .dbline 323
+ 0204           ;       //darrell was --> *((unsigned long *) ((unsigned long)(&CANTXIDR0))) = (unsigned int)Identifier;
+ 0204           ;       
+ 0204           ;       for ( i = 0; i < Length; i++ )
+ 0204 6989              clr 9,S
+ 0206 2022              bra L35
+ 0208           L32:
+ 0208                   .dbline 324
+ 0208           ;       {
+ 0208                   .dbline 325
+ 0208           ;               *(&CANTXDSR0 + i) = *(UNSIGNED8 *)(pTransmitBuf->BUF+i);  /* Load data to Tx buffer 
+ 0208 EC8A              ldd 10,S
+ 020A C30004            addd #4
+ 020D B746              tfr D,Y
+ 020F E689              ldab 9,S
+ 0211 87                clra
+ 0212 6D80              sty 0,S
+ 0214 E380              addd 0,S
+ 0216 B746              tfr D,Y
+ 0218 E640              ldab 0,Y
+ 021A B716              tfr B,Y
+ 021C E689              ldab 9,S
+ 021E 87                clra
+ 021F C30174            addd #372
+ 0222 B745              tfr D,X
+ 0224 B761              tfr Y,B
+ 0226 6B00              stab 0,X
+ 0228                   .dbline 328
+ 0228           ;                                                                                                                                  * Data Segment Registers
+ 0228           ;                                                                                                                                  */
+ 0228           ;       }
+ 0228           L33:
+ 0228                   .dbline 323
+ 0228 6289              inc 9,S
+ 022A           L35:
+ 022A                   .dbline 323
+ 022A E689              ldab 9,S
+ 022C E187              cmpb 7,S
+ 022E 25D8              blo L32
+ 0230                   .dbline 330
+ 0230           ;       
+ 0230           ;       CANTXDLR = Length;                                                                       /* Set Data Length Code */ 
+ 0230 180D87017C        movb 7,S,0x17c
+ 0235                   .dbline 331
+ 0235           ;       CANTXTBPR = priority;                                                            /* Set priority */
+ 0235 180D86017D        movb 6,S,0x17d
+ 023A                   .dbline 333
+ 023A           ;       
+ 023A           ;       CANTFLG = txbuffer;                                                                      /* Start transmission */
+ 023A 180D880146        movb 8,S,0x146
+ 023F                   .dbline 335
+ 023F           ;       
+ 023F           ;       Timer1 = .01 * RTI_One_Sec;
+ 023F 180300090000      movw #9,_Timer1
+ 0245           L36:
+ 0245                   .dbline 336
+ 0245           ;       while ( ((CANTFLG & txbuffer) != txbuffer || (CANCTL0 & 0x01)) && Timer1 );               /* Wait for Transmission */
+ 0245           L37:
+ 0245                   .dbline 336
+ 0245 F60146            ldab 0x146
+ 0248 E488              andb 8,S
+ 024A E188              cmpb 8,S
+ 024C 2605              bne L40
+ 024E 1F01400108        brclr 0x140,#1,L39
+ 0253           L40:
+ 0253 FD0000            ldy _Timer1
+ 0256 8D0000            cpy #0
+ 0259 26EA              bne L36
+ 025B           L39:
+ 025B                   .dbline 337
+ 025B           ;       Gen_Flags &= ~Gen_Flags_No2Wire;   
+ 025B 1D000020          bclr _Gen_Flags,#32
+ 025F                   .dbline 338
+ 025F           ;       if ( !Timer1 || !(CANCTL1 & 0x80) )
+ 025F FD0000            ldy _Timer1
+ 0262 8D0000            cpy #0
+ 0265 2707              beq L43
+ 0267 F60141            ldab 0x141
+ 026A C580              bitb #128
+ 026C 260E              bne L41
+ 026E           L43:
+ 026E                   .dbline 339
+ 026E           ;       {
+ 026E                   .dbline 340
+ 026E           ;           ARMCOP = 0x55;
+ 026E 180B55003F        movb #85,0x3f
+ 0273                   .dbline 341
+ 0273           ;               ARMCOP = 0xAA;
+ 0273 180BAA003F        movb #170,0x3f
+ 0278                   .dbline 342
+ 0278           ;           Gen_Flags |= Gen_Flags_No2Wire;   
+ 0278 1C000020          bset _Gen_Flags,#32
+ 027C                   .dbline 343
+ 027C           ;       }
+ 027C           L41:
+ 027C                   .dbline 346
+ 027C           ;                                                                                                                 /* completion  */
+ 027C           ; 
+ 027C           ;       return 1;                                                                                                                                                                                                                
+ 027C CC0001            ldd #1
+ 027F                   .dbline -2
+ 027F           L25:
+ 027F                   .dbline 0 ; func end
+ 027F 1B8C              leas 12,S
+ 0281 0A                rtc
+ 0282                   .dbsym l Identifier 2 l
+ 0282                   .dbsym l priority 6 c
+ 0282                   .dbsym l Length 7 c
+ 0282                   .dbsym l txbuffer 8 c
+ 0282                   .dbsym l i 9 c
+ 0282                   .dbsym l pTransmitBuf 10 pS[.1]
+ 0282                   .dbend
+ 0282                   .dbfunc e MCOHW_GetTime _MCOHW_GetTime fi
+ 0282           ;            tmp -> 0,SP
+ 0282           $_MCOHW_GetTime::
+ 0282 1B9E              leas -2,S
+ 0284                   .dbline -1
+ 0284                   .dbline 359
+ 0284           ; 
+ 0284           ; 
+ 0284           ; }
+ 0284           ; 
+ 0284           ; /**************************************************************************
+ 0284           ; DOES:    Gets the value of the current 1 millisecond system timer 
+ 0284           ; RETURNS: The current timer tick                                   
+ 0284           ; **************************************************************************/
+ 0284           ; UNSIGNED16 MCOHW_GetTime
+ 0284           ;   (
+ 0284           ;   void
+ 0284           ;   )
+ 0284           ; {
+ 0284                   .dbline 363
+ 0284           ;   UNSIGNED16 tmp;
+ 0284           ; 
+ 0284           ;   // disable interrupts
+ 0284           ;   INTR_OFF();
+ 0284 1410              sei
+ 0286                   .dbline 366
+ 0286           ; 
+ 0286           ;   // make copy of current timer tick
+ 0286           ;   tmp = gTimCnt;
+ 0286 1801800000        movw _gTimCnt,0,S
+ 028B                   .dbline 369
+ 028B           ; 
+ 028B           ;   // enable interrupts
+ 028B           ;   INTR_ON();
+ 028B 10EF              cli
+ 028D                   .dbline 371
+ 028D           ; 
+ 028D           ;   return tmp;
+ 028D EC80              ldd 0,S
+ 028F                   .dbline -2
+ 028F           L44:
+ 028F                   .dbline 0 ; func end
+ 028F 1B82              leas 2,S
+ 0291 0A                rtc
+ 0292                   .dbsym l tmp 0 i
+ 0292                   .dbend
+ 0292                   .dbfunc e MCOHW_IsTimeExpired _MCOHW_IsTimeExpired fc
+ 0292           ;       time_now -> 0,SP
+ 0292           ;      timestamp -> 2,SP
+ 0292           $_MCOHW_IsTimeExpired::
+ 0292 3B                pshd
+ 0293 1B9E              leas -2,S
+ 0295                   .dbline -1
+ 0295                   .dbline 383
+ 0295           ; }
+ 0295           ; 
+ 0295           ; /**************************************************************************
+ 0295           ; DOES:    Checks if a moment in time has passed (a timestamp has expired)
+ 0295           ; RETURNS: 0 if timestamp has not yet expired, 1 if the             
+ 0295           ;          timestamp has expired                                    
+ 0295           ; **************************************************************************/
+ 0295           ; UNSIGNED8 MCOHW_IsTimeExpired
+ 0295           ;   (
+ 0295           ;   UNSIGNED16 timestamp  // timestamp to check for expiration
+ 0295           ;   )
+ 0295           ; {
+ 0295                   .dbline 387
+ 0295           ;   UNSIGNED16 time_now;
+ 0295           ; 
+ 0295           ;   // disable interrupts
+ 0295           ;   INTR_OFF();
+ 0295 1410              sei
+ 0297                   .dbline 389
+ 0297           ;   // get current time
+ 0297           ;   time_now = gTimCnt;
+ 0297 1801800000        movw _gTimCnt,0,S
+ 029C                   .dbline 391
+ 029C           ;   // enable interrupts
+ 029C           ;   INTR_ON();
+ 029C 10EF              cli
+ 029E                   .dbline 393
+ 029E           ;   // ensure minimum runtime
+ 029E           ;   timestamp++;
+ 029E ED82              ldy 2,S
+ 02A0 02                iny
+ 02A1 6D82              sty 2,S
+ 02A3                   .dbline 394
+ 02A3           ;   if (time_now > timestamp)
+ 02A3 ED80              ldy 0,S
+ 02A5 AD82              cpy 2,S
+ 02A7 2313              bls L46
+ 02A9                   .dbline 395
+ 02A9           ;   {
+ 02A9                   .dbline 396
+ 02A9           ;     if ((time_now - timestamp) < 0x8000)
+ 02A9 EC80              ldd 0,S
+ 02AB A382              subd 2,S
+ 02AD 8C8000            cpd #32768
+ 02B0 2405              bhs L48
+ 02B2                   .dbline 397
+ 02B2           ;       return 1;
+ 02B2 CC0001            ldd #1
+ 02B5 2016              bra L45
+ 02B7           L48:
+ 02B7                   .dbline 399
+ 02B7           ;     else
+ 02B7           ;       return 0;
+ 02B7 CC0000            ldd #0
+ 02BA 2011              bra L45
+ 02BC           L46:
+ 02BC                   .dbline 402
+ 02BC           ;   }
+ 02BC           ;   else
+ 02BC           ;   {
+ 02BC                   .dbline 403
+ 02BC           ;     if ((timestamp - time_now) > 0x8000)
+ 02BC EC82              ldd 2,S
+ 02BE A380              subd 0,S
+ 02C0 8C8000            cpd #32768
+ 02C3 2305              bls L50
+ 02C5                   .dbline 404
+ 02C5           ;       return 1;
+ 02C5 CC0001            ldd #1
+ 02C8 2003              bra L45
+ 02CA           L50:
+ 02CA                   .dbline 406
+ 02CA           ;     else
+ 02CA           ;       return 0;
+ 02CA CC0000            ldd #0
+ 02CD                   .dbline -2
+ 02CD           L45:
+ 02CD                   .dbline 0 ; func end
+ 02CD 1B84              leas 4,S
+ 02CF 0A                rtc
+ 02D0                   .dbsym l time_now 0 i
+ 02D0                   .dbsym l timestamp 2 i
+ 02D0                   .dbend
+ 02D0                   .dbfunc e MCOHW_TimerISR _MCOHW_TimerISR fV
+ 02D0           $_MCOHW_TimerISR::
+ 02D0                   .dbline -1
+ 02D0                   .dbline 421
+ 02D0           ;   }
+ 02D0           ; }
+ 02D0           ; 
+ 02D0           ; /**************************************************************************
+ 02D0           ; DOES:    Timer interrupt service routine                          
+ 02D0           ;          Increments the global millisecond counter tick           
+ 02D0           ;          This function needs to be called once every millisecond  
+ 02D0           ; RETURNS: nothing
+ 02D0           ; NOTE:    See TC3_Int_Handler                                                     
+ 02D0           ; **************************************************************************/
+ 02D0           ; void MCOHW_TimerISR
+ 02D0           ;   (
+ 02D0           ;   void
+ 02D0           ;   ) 
+ 02D0           ; {
+ 02D0                   .dbline 422
+ 02D0           ;   gTimCnt++;
+ 02D0 FD0000            ldy _gTimCnt
+ 02D3 02                iny
+ 02D4 7D0000            sty _gTimCnt
+ 02D7                   .dbline -2
+ 02D7           L52:
+ 02D7                   .dbline 0 ; func end
+ 02D7 0A                rtc
+ 02D8                   .dbend
+ 02D8                   .dbfunc e MCOHW_Init _MCOHW_Init fc
+ 02D8           ;     baudrateok -> 0,SP
+ 02D8           ;              i -> 1,SP
+ 02D8           ;       BaudRate -> 2,SP
+ 02D8           $_MCOHW_Init::
+ 02D8 3B                pshd
+ 02D9 1B9E              leas -2,S
+ 02DB                   .dbline -1
+ 02DB                   .dbline 435
+ 02DB           ; }
+ 02DB           ; 
+ 02DB           ; /**************************************************************************
+ 02DB           ; DOES:    Initializes the CAN interface.                           
+ 02DB           ; CAUTION: Does not initialize filters - nothing will be received   
+ 02DB           ;          unless screeners are set using set_screener_std          
+ 02DB           ; RETURNS: 0 for failed init, 1 for successful init                 
+ 02DB           ; **************************************************************************/
+ 02DB           ; UNSIGNED8 MCOHW_Init
+ 02DB           ;   (
+ 02DB           ;   UNSIGNED16 BaudRate  // desired baudrate in kbps
+ 02DB           ;   )
+ 02DB           ; {
+ 02DB                   .dbline 438
+ 02DB           ; 
+ 02DB           ; UNSIGNED8 i;
+ 02DB           ; UNSIGNED8 baudrateok = 0;
+ 02DB 6980              clr 0,S
+ 02DD                   .dbline 440
+ 02DD           ; 
+ 02DD           ;       CANCTL0 = 0x01;
+ 02DD 180B010140        movb #1,0x140
+ 02E2                   .dbline 441
+ 02E2           ;       Timer1 = .01 * RTI_One_Sec;
+ 02E2 180300090000      movw #9,_Timer1
+ 02E8 200A              bra L55
+ 02EA           L54:
+ 02EA                   .dbline 443
+ 02EA           ;       while ( !(CANCTL1 & 0x01) && Timer1 )
+ 02EA           ;       {
+ 02EA                   .dbline 444
+ 02EA           ;           ARMCOP = 0x55;
+ 02EA 180B55003F        movb #85,0x3f
+ 02EF                   .dbline 445
+ 02EF           ;               ARMCOP = 0xAA;
+ 02EF 180BAA003F        movb #170,0x3f
+ 02F4                   .dbline 446
+ 02F4           ;       }
+ 02F4           L55:
+ 02F4                   .dbline 442
+ 02F4 F60141            ldab 0x141
+ 02F7 C501              bitb #1
+ 02F9 2608              bne L57
+ 02FB FD0000            ldy _Timer1
+ 02FE 8D0000            cpy #0
+ 0301 26E7              bne L54
+ 0303           L57:
+ 0303                   .dbline 448
+ 0303           ;       
+ 0303           ;       CANCTL1 = 0x80;//CANCTL1 = 0xa0;
+ 0303 180B800141        movb #128,0x141
+ 0308                   .dbline 449
+ 0308           ;       CANBTR0 = 0xc1;
+ 0308 180BC10142        movb #193,0x142
+ 030D                   .dbline 450
+ 030D           ;       CANBTR1 = 0x3a;
+ 030D 180B3A0143        movb #58,0x143
+ 0312                   .dbline 453
+ 0312           ; 
+ 0312           ;   // This version only supports 125kbit at 12MHz
+ 0312           ;   if (BaudRate == 125)
+ 0312 ED82              ldy 2,S
+ 0314 8D007D            cpy #125
+ 0317 260E              bne L58
+ 0319                   .dbline 454
+ 0319           ;   {
+ 0319                   .dbline 457
+ 0319           ;      // BTR0 and BTR1 determine the baudrate and sample point position
+ 0319           ;      // set address to BTR0 register
+ 0319           ;       CANBTR0 = 0x43;
+ 0319 180B430142        movb #67,0x142
+ 031E                   .dbline 458
+ 031E           ;       CANBTR1 = 0x49;
+ 031E 180B490143        movb #73,0x143
+ 0323                   .dbline 461
+ 0323           ;  
+ 0323           ;      // the baudrate is supported
+ 0323           ;     baudrateok = 1;
+ 0323 18088001          movb #1,0,S
+ 0327                   .dbline 462
+ 0327           ;   }
+ 0327           L58:
+ 0327                   .dbline 465
+ 0327           ; 
+ 0327           ;   // no filters configured
+ 0327           ;   gCANFilter = 0;
+ 0327 790002            clr _gCANFilter
+ 032A                   .dbline 468
+ 032A           ; 
+ 032A           ;   // Clear all acceptance filters and masks, receive nothing
+ 032A           ;   for(i=1;i<=16;i++) *(&CANIDAR0 + i) = 0;
+ 032A 18088101          movb #1,1,S
+ 032E 2011              bra L63
+ 0330           L60:
+ 0330                   .dbline 468
+ 0330 CD0000            ldy #0
+ 0333 E681              ldab 1,S
+ 0335 87                clra
+ 0336 C30150            addd #336
+ 0339 B745              tfr D,X
+ 033B B761              tfr Y,B
+ 033D 6B00              stab 0,X
+ 033F           L61:
+ 033F                   .dbline 468
+ 033F 6281              inc 1,S
+ 0341           L63:
+ 0341                   .dbline 468
+ 0341 E681              ldab 1,S
+ 0343 C110              cmpb #16
+ 0345 23E9              bls L60
+ 0347                   .dbline 473
+ 0347           ; 
+ 0347           ;   // Set acceptance filter mode to accept standard frames with single
+ 0347           ;   // acceptance filter.
+ 0347           ;   //darrell change to 8 bit acceptance                                                    
+ 0347           ;   ;CANIDAC = 0x20;
+ 0347                   .dbline 473
+ 0347 180B20014B        movb #32,0x14b
+ 034C                   .dbline 476
+ 034C           ; 
+ 034C           ;   // release CAN controller
+ 034C           ;     CANCTL0 = 0x00;                                                                            /* Exit Initialization Mode Request */
+ 034C 790140            clr 0x140
+ 034F                   .dbline 477
+ 034F           ;       Timer1 = .01 * RTI_One_Sec;
+ 034F 180300090000      movw #9,_Timer1
+ 0355 200A              bra L65
+ 0357           L64:
+ 0357                   .dbline 479
+ 0357           ;       while ( (CANCTL1 & 0x01) != 0 && Timer1)                                                 /* Wait for Normal Mode */
+ 0357           ;       {
+ 0357                   .dbline 480
+ 0357           ;           ARMCOP = 0x55;
+ 0357 180B55003F        movb #85,0x3f
+ 035C                   .dbline 481
+ 035C           ;               ARMCOP = 0xAA;
+ 035C 180BAA003F        movb #170,0x3f
+ 0361                   .dbline 482
+ 0361           ;       }
+ 0361           L65:
+ 0361                   .dbline 478
+ 0361 1F01410108        brclr 0x141,#1,L67
+ 0366 FD0000            ldy _Timer1
+ 0369 8D0000            cpy #0
+ 036C 26E9              bne L64
+ 036E           L67:
+ 036E                   .dbline 485
+ 036E           ;   
+ 036E           ;       // Initialize 1ms Timer interrupt 
+ 036E           ;       TC3 = TCNT + TC_1ms;
+ 036E FC0044            ldd 0x44
+ 0371 C302ED            addd #749
+ 0374 B746              tfr D,Y
+ 0376 7D0056            sty 0x56
+ 0379                   .dbline 486
+ 0379           ;       TIE |= TIE_C3I;
+ 0379 1C004C08          bset 0x4c,#8
+ 037D                   .dbline 489
+ 037D           ;       
+ 037D           ; 
+ 037D           ;   return baudrateok;
+ 037D E680              ldab 0,S
+ 037F 87                clra
+ 0380                   .dbline -2
+ 0380           L53:
+ 0380                   .dbline 0 ; func end
+ 0380 1B84              leas 4,S
+ 0382 0A                rtc
+ 0383                   .dbsym l baudrateok 0 c
+ 0383                   .dbsym l i 1 c
+ 0383                   .dbsym l BaudRate 2 i
+ 0383                   .dbend
+                        .area data
+ 0003                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+ 0003           L69:
+ 0003                   .blkb 1
+                        .area idata
+ 0003 01                .byte 1
+                        .area data
+ 0004                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+                        .area extcode(paged)
+ 0383                   .dbfile C:\Dev\REV1~1.01\mcohw.c
+ 0383                   .dbfunc e MCOHW_SetCANFilter _MCOHW_SetCANFilter fc
+ 0383                   .dbsym s Node_Not_Set L69 c
+ 0383           ;           mode -> 4,SP
+ 0383           ;          CANID -> 5,SP
+ 0383           ;             ap -> 7,SP
+ 0383           ;           arg1 -> 12,SP
+ 0383           $_MCOHW_SetCANFilter::
+ 0383 1B97              leas -9,S
+ 0385                   .dbline -1
+ 0385                   .dbline 529
+ 0385           ; 
+ 0385           ;   
+ 0385           ; 
+ 0385           ; }
+ 0385           ; 
+ 0385           ; #include "stdarg.h"
+ 0385           ; /**************************************************************************
+ 0385           ; DOES:    Initializes the next available filter                    
+ 0385           ; RETURNS: 0 for failed init, 1 for successful init
+ 0385           ; 
+ 0385           ; This function replaces the original function that just
+ 0385           ; set up to 8 filters, requiring a match of all bits.
+ 0385           ; This function can be called as previously with just 
+ 0385           ; the CANID argument and it will function as it previously
+ 0385           ; was intended. 
+ 0385           ;  
+ 0385           ; If this function is called with a second argument, set
+ 0385           ; to true, It will attempt to make one filter for any 
+ 0385           ; CANID that matches this NODE_ID (lower 7 bits of CANID).
+ 0385           ; 
+ 0385           ; The call to this function in "MCO_Init" that sets the filter
+ 0385           ; for the NMT master does not need modified; 
+ 0385           ; ("if (!MCOHW_SetCANFilter(0))")
+ 0385           ; 
+ 0385           ; The call to this function in "MCO_Init" that sets the filter
+ 0385           ; to accept SDO for this node, should use the second argument 
+ 0385           ; (such as; "if (!MCOHW_SetCANFilter(0x600+Node_ID,1))"
+ 0385           ;                  
+ 0385           ; The call to this function in "MCO_Init" that sets the filter
+ 0385           ; to accept RPDOs for this node, should use the second argument 
+ 0385           ; (such as; "if (!MCOHW_SetCANFilter(gRPDOConfig[PDO_NR].CANID,1))"
+ 0385           ;                  
+ 0385           ; **************************************************************************/
+ 0385           ; UNSIGNED8 MCOHW_SetCANFilter
+ 0385           ;   (
+ 0385           ; //  UNSIGNED16 CANID  // identifier to receive
+ 0385           ;   UNSIGNED16 arg1,  // identifier to receive and optional mode argument
+ 0385           ;   ...
+ 0385           ;   )
+ 0385           ; {
+ 0385                   .dbline 536
+ 0385           ; 
+ 0385           ;     static UNSIGNED8 Node_Not_Set = 1;
+ 0385           ;     va_list ap;
+ 0385           ;       UNSIGNED16 CANID;
+ 0385           ;       UNSIGNED8 mode;
+ 0385           ;       
+ 0385           ;       va_start(ap, arg1);
+ 0385 198E              leay 14,S
+ 0387 6D87              sty 7,S
+ 0389                   .dbline 537
+ 0389           ;       CANID = arg1;
+ 0389 18028C85          movw 12,S,5,S
+ 038D                   .dbline 539
+ 038D           ;       
+ 038D           ;       mode = va_arg(ap, UNSIGNED16); 
+ 038D EC87              ldd 7,S
+ 038F C30002            addd #2
+ 0392 6C87              std 7,S
+ 0394 C3FFFE            addd #65534
+ 0397 B746              tfr D,Y
+ 0399 E641              ldab 1,Y
+ 039B 6B84              stab 4,S
+ 039D                   .dbline 540
+ 039D           ;     va_end(ap);
+ 039D                   .dbline 541
+ 039D           ;     if (mode)
+ 039D C100              cmpb #0
+ 039F 275A              beq L71
+ 03A1                   .dbline 542
+ 03A1           ;     {      
+ 03A1                   .dbline 543
+ 03A1           ;         if(!((CANID & 0x07f) ^ NODE_ID)) //True if this RPDO belongs to this node
+ 03A1 EC85              ldd 5,S
+ 03A3 8400              anda #0
+ 03A5 C47F              andb #127
+ 03A7 8800              eora #0
+ 03A9 C821              eorb #33
+ 03AB 8C0000            cpd #0
+ 03AE 264B              bne L73
+ 03B0                   .dbline 544
+ 03B0           ;         {                                                                                              //One filter will be set to handle all RPDOs
+ 03B0                   .dbline 545
+ 03B0           ;             if (!Node_Not_Set)
+ 03B0 F60003            ldab L69
+ 03B3 C100              cmpb #0
+ 03B5 2607              bne L75
+ 03B7                   .dbline 546
+ 03B7           ;                       {
+ 03B7                   .dbline 547
+ 03B7           ;                           return 1; //Filter was set for this node
+ 03B7 CC0001            ldd #1
+ 03BA 18200074          lbra L68
+ 03BE           L75:
+ 03BE                   .dbline 550
+ 03BE           ;                       }
+ 03BE           ;                       
+ 03BE           ;                       Node_Not_Set = 0;  
+ 03BE 790003            clr L69
+ 03C1                   .dbline 552
+ 03C1           ;                        // get the number of the next available filter
+ 03C1           ;             gCANFilter++;
+ 03C1 720002            inc _gCANFilter
+ 03C4                   .dbline 554
+ 03C4           ;             // if all filters used then fail
+ 03C4           ;             if (gCANFilter > 8)
+ 03C4 F60002            ldab _gCANFilter
+ 03C7 C108              cmpb #8
+ 03C9 2305              bls L77
+ 03CB                   .dbline 555
+ 03CB           ;             {
+ 03CB                   .dbline 556
+ 03CB           ;                 return 0;
+ 03CB CC0000            ldd #0
+ 03CE 2062              bra L68
+ 03D0           L77:
+ 03D0                   .dbline 560
+ 03D0           ;             }
+ 03D0           ;             // filter available
+ 03D0           ;             else
+ 03D0           ;             {
+ 03D0                   .dbline 563
+ 03D0           ;                 //darrell
+ 03D0           ;                 //added, filters can only be set in initialization mode
+ 03D0           ;                 CANCTL0 = 0x01;
+ 03D0 180B010140        movb #1,0x140
+ 03D5           L79:
+ 03D5                   .dbline 565
+ 03D5           ;                 while ( !(CANCTL1 & 0x01) )
+ 03D5           ;                 {
+ 03D5                   .dbline 566
+ 03D5           ;               }
+ 03D5           L80:
+ 03D5                   .dbline 564
+ 03D5 1F014101FB        brclr 0x141,#1,L79
+ 03DA                   .dbline 569
+ 03DA           ;             
+ 03DA           ;                 // configure the filter
+ 03DA           ;                 set_screener_std(gCANFilter,0xFF80,NODE_ID  //darrell, use only the Node_ID
+ 03DA CD0021            ldy #33
+ 03DD 6D82              sty 2,S
+ 03DF CDFF80            ldy #65408
+ 03E2 6D80              sty 0,S
+ 03E4 F60002            ldab _gCANFilter
+ 03E7 87                clra
+ 03E8 4A000000          xcall $_set_screener_std
+ 03EC                   .dbline 575
+ 03EC           ;                 //The following arguments are not used, this has been modified for 16 bit filters                                             
+ 03EC           ;                 //,0xFF,0xFF,0xFF,0xFF);
+ 03EC           ;                 ); 
+ 03EC           ;                 //darrell
+ 03EC           ;                 //added, exit initialization mode
+ 03EC           ;                 CANCTL0 = 0x00;                                                                                /* Exit Initialization Mode Request */
+ 03EC 790140            clr 0x140
+ 03EF           L82:
+ 03EF                   .dbline 577
+ 03EF           ;                 while ( (CANCTL1 & 0x01) != 0 )                                                /* Wait for Normal Mode */
+ 03EF           ;                 {
+ 03EF                   .dbline 578
+ 03EF           ;                 }
+ 03EF           L83:
+ 03EF                   .dbline 576
+ 03EF F60141            ldab 0x141
+ 03F2 C501              bitb #1
+ 03F4 26F9              bne L82
+ 03F6                   .dbline 579
+ 03F6           ;                 return 1;
+ 03F6 CC0001            ldd #1
+ 03F9 2037              bra L68
+ 03FB           L73:
+ 03FB                   .dbline 583
+ 03FB           ;             }
+ 03FB           ;        
+ 03FB           ;         }
+ 03FB           ;      }
+ 03FB           L71:
+ 03FB                   .dbline 586
+ 03FB           ;        
+ 03FB           ;     // get the number of the next available filter
+ 03FB           ;     gCANFilter++;
+ 03FB 720002            inc _gCANFilter
+ 03FE                   .dbline 588
+ 03FE           ;     // if all filters used then fail
+ 03FE           ;     if (gCANFilter > 8)
+ 03FE F60002            ldab _gCANFilter
+ 0401 C108              cmpb #8
+ 0403 2305              bls L85
+ 0405                   .dbline 589
+ 0405           ;     {
+ 0405                   .dbline 590
+ 0405           ;         return 0;
+ 0405 CC0000            ldd #0
+ 0408 2028              bra L68
+ 040A           L85:
+ 040A                   .dbline 594
+ 040A           ;     }
+ 040A           ;     // filter available
+ 040A           ;     else
+ 040A           ;     {
+ 040A                   .dbline 597
+ 040A           ;         //darrell
+ 040A           ;         //added, filters can only be set in initialization mode
+ 040A           ;         CANCTL0 = 0x01;
+ 040A 180B010140        movb #1,0x140
+ 040F           L87:
+ 040F                   .dbline 599
+ 040F           ;         while ( !(CANCTL1 & 0x01) )
+ 040F           ;         {
+ 040F                   .dbline 600
+ 040F           ;       }
+ 040F           L88:
+ 040F                   .dbline 598
+ 040F 1F014101FB        brclr 0x141,#1,L87
+ 0414                   .dbline 603
+ 0414           ;     
+ 0414           ;         // configure the filter
+ 0414           ;         set_screener_std(gCANFilter,0x0000,CANID  //darrell
+ 0414 ED85              ldy 5,S
+ 0416 6D82              sty 2,S
+ 0418 CD0000            ldy #0
+ 041B 6D80              sty 0,S
+ 041D F60002            ldab _gCANFilter
+ 0420 87                clra
+ 0421 4A000000          xcall $_set_screener_std
+ 0425                   .dbline 609
+ 0425           ;         //The following arguments are not used, this has been modified for 16 bit filters                                             
+ 0425           ;         //,0xFF,0xFF,0xFF,0xFF);
+ 0425           ;         ); 
+ 0425           ;         //darrell
+ 0425           ;         //added, exit initialization mode
+ 0425           ;         CANCTL0 = 0x00;                                                                                /* Exit Initialization Mode Request */
+ 0425 790140            clr 0x140
+ 0428           L90:
+ 0428                   .dbline 611
+ 0428           ;         while ( (CANCTL1 & 0x01) != 0 )                                                /* Wait for Normal Mode */
+ 0428           ;         {
+ 0428                   .dbline 612
+ 0428           ;         }
+ 0428           L91:
+ 0428                   .dbline 610
+ 0428 F60141            ldab 0x141
+ 042B C501              bitb #1
+ 042D 26F9              bne L90
+ 042F                   .dbline 613
+ 042F           ;         return 1;
+ 042F CC0001            ldd #1
+ 0432                   .dbline -2
+ 0432           L68:
+ 0432                   .dbline 0 ; func end
+ 0432 1B89              leas 9,S
+ 0434 0A                rtc
+ 0435                   .dbsym l mode 4 c
+ 0435                   .dbsym l CANID 5 i
+ 0435                   .dbsym l ap 7 pc
+ 0435                   .dbsym l arg1 12 i
+ 0435                   .dbend

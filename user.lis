@@ -1,0 +1,669 @@
+                        .module user.c
+                        .area text
+ 0000                   .dbfile ..\REV1~1.01\user.c
+                        .area data
+ 0000                   .dbfile ..\REV1~1.01\user.c
+ 0000           _SDOResponseTable::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 4300              .byte 'C,0
+                        .area data
+ 0002                   .dbfile ..\REV1~1.01\user.c
+ 0002                   .blkb 2
+                        .area idata
+ 0002 1000              .byte 16,0
+                        .area data
+ 0004                   .dbfile ..\REV1~1.01\user.c
+ 0004                   .blkb 2
+                        .area idata
+ 0004 9101              .byte 145,1
+                        .area data
+ 0006                   .dbfile ..\REV1~1.01\user.c
+ 0006                   .blkb 2
+                        .area idata
+ 0006 0F00              .byte 15,0
+                        .area data
+ 0008                   .dbfile ..\REV1~1.01\user.c
+ 0008                   .blkb 2
+                        .area idata
+ 0008 4F18              .byte 'O,24
+                        .area data
+ 000A                   .dbfile ..\REV1~1.01\user.c
+ 000A                   .blkb 2
+                        .area idata
+ 000A 1000              .byte 16,0
+                        .area data
+ 000C                   .dbfile ..\REV1~1.01\user.c
+ 000C                   .blkb 2
+                        .area idata
+ 000C 0400              .byte 4,0
+                        .area data
+ 000E                   .dbfile ..\REV1~1.01\user.c
+ 000E                   .blkb 2
+                        .area idata
+ 000E 0000              .byte 0,0
+                        .area data
+ 0010                   .dbfile ..\REV1~1.01\user.c
+ 0010                   .blkb 2
+                        .area idata
+ 0010 4318              .byte 'C,24
+                        .area data
+ 0012                   .dbfile ..\REV1~1.01\user.c
+ 0012                   .blkb 2
+                        .area idata
+ 0012 1001              .byte 16,1
+                        .area data
+ 0014                   .dbfile ..\REV1~1.01\user.c
+ 0014                   .blkb 2
+                        .area idata
+ 0014 5354              .byte 'S,'T
+                        .area data
+ 0016                   .dbfile ..\REV1~1.01\user.c
+ 0016                   .blkb 2
+                        .area idata
+ 0016 5243              .byte 'R,'C
+                        .area data
+ 0018                   .dbfile ..\REV1~1.01\user.c
+ 0018                   .blkb 2
+                        .area idata
+ 0018 4318              .byte 'C,24
+                        .area data
+ 001A                   .dbfile ..\REV1~1.01\user.c
+ 001A                   .blkb 2
+                        .area idata
+ 001A 1002              .byte 16,2
+                        .area data
+ 001C                   .dbfile ..\REV1~1.01\user.c
+ 001C                   .blkb 2
+                        .area idata
+ 001C 0200              .byte 2,0
+                        .area data
+ 001E                   .dbfile ..\REV1~1.01\user.c
+ 001E                   .blkb 2
+                        .area idata
+ 001E 0100              .byte 1,0
+                        .area data
+ 0020                   .dbfile ..\REV1~1.01\user.c
+ 0020                   .blkb 2
+                        .area idata
+ 0020 4318              .byte 'C,24
+                        .area data
+ 0022                   .dbfile ..\REV1~1.01\user.c
+ 0022                   .blkb 2
+                        .area idata
+ 0022 1003              .byte 16,3
+                        .area data
+ 0024                   .dbfile ..\REV1~1.01\user.c
+ 0024                   .blkb 2
+                        .area idata
+ 0024 0000              .byte 0,0
+                        .area data
+ 0026                   .dbfile ..\REV1~1.01\user.c
+ 0026                   .blkb 2
+                        .area idata
+ 0026 0100              .byte 1,0
+                        .area data
+ 0028                   .dbfile ..\REV1~1.01\user.c
+ 0028                   .blkb 2
+                        .area idata
+ 0028 4318              .byte 'C,24
+                        .area data
+ 002A                   .dbfile ..\REV1~1.01\user.c
+ 002A                   .blkb 2
+                        .area idata
+ 002A 1004              .byte 16,4
+                        .area data
+ 002C                   .dbfile ..\REV1~1.01\user.c
+ 002C                   .blkb 2
+                        .area idata
+ 002C FFFF              .byte 255,255
+                        .area data
+ 002E                   .dbfile ..\REV1~1.01\user.c
+ 002E                   .blkb 2
+                        .area idata
+ 002E FFFF              .byte 255,255
+                        .area data
+ 0030                   .dbfile ..\REV1~1.01\user.c
+ 0030                   .blkb 2
+                        .area idata
+ 0030 4F18              .byte 'O,24
+                        .area data
+ 0032                   .dbfile ..\REV1~1.01\user.c
+ 0032                   .blkb 2
+                        .area idata
+ 0032 2000              .byte 32,0
+                        .area data
+ 0034                   .dbfile ..\REV1~1.01\user.c
+ 0034                   .blkb 2
+                        .area idata
+ 0034 0300              .byte 3,0
+                        .area data
+ 0036                   .dbfile ..\REV1~1.01\user.c
+ 0036                   .blkb 2
+                        .area idata
+ 0036 0000              .byte 0,0
+                        .area data
+ 0038                   .dbfile ..\REV1~1.01\user.c
+ 0038                   .blkb 2
+                        .area idata
+ 0038 4318              .byte 'C,24
+                        .area data
+ 003A                   .dbfile ..\REV1~1.01\user.c
+ 003A                   .blkb 2
+                        .area idata
+ 003A 2001              .byte 32,1
+                        .area data
+ 003C                   .dbfile ..\REV1~1.01\user.c
+ 003C                   .blkb 2
+                        .area idata
+ 003C 4153              .byte 'A,'S
+                        .area data
+ 003E                   .dbfile ..\REV1~1.01\user.c
+ 003E                   .blkb 2
+                        .area idata
+ 003E 4501              .byte 'E,1
+                        .area data
+ 0040                   .dbfile ..\REV1~1.01\user.c
+ 0040                   .blkb 2
+                        .area idata
+ 0040 4318              .byte 'C,24
+                        .area data
+ 0042                   .dbfile ..\REV1~1.01\user.c
+ 0042                   .blkb 2
+                        .area idata
+ 0042 2002              .byte 32,2
+                        .area data
+ 0044                   .dbfile ..\REV1~1.01\user.c
+ 0044                   .blkb 2
+                        .area idata
+ 0044 504F              .byte 'P,'O
+                        .area data
+ 0046                   .dbfile ..\REV1~1.01\user.c
+ 0046                   .blkb 2
+                        .area idata
+ 0046 434D              .byte 'C,'M
+                        .area data
+ 0048                   .dbfile ..\REV1~1.01\user.c
+ 0048                   .blkb 2
+                        .area idata
+ 0048 4318              .byte 'C,24
+                        .area data
+ 004A                   .dbfile ..\REV1~1.01\user.c
+ 004A                   .blkb 2
+                        .area idata
+ 004A 2003              .byte 32,3
+                        .area data
+ 004C                   .dbfile ..\REV1~1.01\user.c
+ 004C                   .blkb 2
+                        .area idata
+ 004C 2000              .byte 32,0
+                        .area data
+ 004E                   .dbfile ..\REV1~1.01\user.c
+ 004E                   .blkb 2
+                        .area idata
+ 004E 0100              .byte 1,0
+                        .area data
+ 0050                   .dbfile ..\REV1~1.01\user.c
+ 0050                   .blkb 2
+                        .area idata
+ 0050 4F10              .byte 'O,16
+                        .area data
+ 0052                   .dbfile ..\REV1~1.01\user.c
+ 0052                   .blkb 2
+                        .area idata
+ 0052 2100              .byte 33,0
+                        .area data
+ 0054                   .dbfile ..\REV1~1.01\user.c
+ 0054                   .blkb 2
+                        .area idata
+ 0054 0400              .byte 4,0
+                        .area data
+ 0056                   .dbfile ..\REV1~1.01\user.c
+ 0056                   .blkb 2
+                        .area idata
+ 0056 0000              .byte 0,0
+                        .area data
+ 0058                   .dbfile ..\REV1~1.01\user.c
+ 0058                   .blkb 2
+                        .area idata
+ 0058 4310              .byte 'C,16
+                        .area data
+ 005A                   .dbfile ..\REV1~1.01\user.c
+ 005A                   .blkb 2
+                        .area idata
+ 005A 2101              .byte 33,1
+                        .area data
+ 005C                   .dbfile ..\REV1~1.01\user.c
+ 005C                   .blkb 2
+                        .area idata
+ 005C 4341              .byte 'C,'A
+                        .area data
+ 005E                   .dbfile ..\REV1~1.01\user.c
+ 005E                   .blkb 2
+                        .area idata
+ 005E 4D45              .byte 'M,'E
+                        .area data
+ 0060                   .dbfile ..\REV1~1.01\user.c
+ 0060                   .blkb 2
+                        .area idata
+ 0060 4310              .byte 'C,16
+                        .area data
+ 0062                   .dbfile ..\REV1~1.01\user.c
+ 0062                   .blkb 2
+                        .area idata
+ 0062 2102              .byte 33,2
+                        .area data
+ 0064                   .dbfile ..\REV1~1.01\user.c
+ 0064                   .blkb 2
+                        .area idata
+ 0064 5241              .byte 'R,'A
+                        .area data
+ 0066                   .dbfile ..\REV1~1.01\user.c
+ 0066                   .blkb 2
+                        .area idata
+ 0066 2020              .byte 32,32
+                        .area data
+ 0068                   .dbfile ..\REV1~1.01\user.c
+ 0068                   .blkb 2
+                        .area idata
+ 0068 4310              .byte 'C,16
+                        .area data
+ 006A                   .dbfile ..\REV1~1.01\user.c
+ 006A                   .blkb 2
+                        .area idata
+ 006A 2103              .byte 33,3
+                        .area data
+ 006C                   .dbfile ..\REV1~1.01\user.c
+ 006C                   .blkb 2
+                        .area idata
+ 006C 2020              .byte 32,32
+                        .area data
+ 006E                   .dbfile ..\REV1~1.01\user.c
+ 006E                   .blkb 2
+                        .area idata
+ 006E 2020              .byte 32,32
+                        .area data
+ 0070                   .dbfile ..\REV1~1.01\user.c
+ 0070                   .blkb 2
+                        .area idata
+ 0070 4310              .byte 'C,16
+                        .area data
+ 0072                   .dbfile ..\REV1~1.01\user.c
+ 0072                   .blkb 2
+                        .area idata
+ 0072 2104              .byte 33,4
+                        .area data
+ 0074                   .dbfile ..\REV1~1.01\user.c
+ 0074                   .blkb 2
+                        .area idata
+ 0074 2020              .byte 32,32
+                        .area data
+ 0076                   .dbfile ..\REV1~1.01\user.c
+ 0076                   .blkb 2
+                        .area idata
+ 0076 2032              .byte 32,50
+                        .area data
+ 0078                   .dbfile ..\REV1~1.01\user.c
+ 0078                   .blkb 2
+                        .area idata
+ 0078 57FF              .byte 'W,255
+                        .area data
+ 007A                   .dbfile ..\REV1~1.01\user.c
+ 007A                   .blkb 2
+                        .area idata
+ 007A FFFF              .byte 255,255
+                        .area data
+ 007C                   .dbfile ..\REV1~1.01\user.c
+ 007C                   .blkb 2
+                        .area idata
+ 007C FFFF              .byte 255,255
+                        .area data
+ 007E                   .dbfile ..\REV1~1.01\user.c
+ 007E                   .blkb 2
+                        .area idata
+ 007E FFFF              .byte 255,255
+                        .area data
+ 0080                   .dbfile ..\REV1~1.01\user.c
+ 0080                   .dbfile C:\Dev\REV1~1.01\user.c
+ 0080                   .dbsym e SDOResponseTable _SDOResponseTable A[128:128]c
+                        .area extcode(paged)
+ 0000                   .dbfile C:\Dev\REV1~1.01\user.c
+ 0000                   .dbfunc e MCOUSER_FatalError _MCOUSER_FatalError fV
+ 0000           ;        ErrCode -> 0,SP
+ 0000           $_MCOUSER_FatalError::
+ 0000 3B                pshd
+ 0001                   .dbline -1
+ 0001                   .dbline 144
+ 0001           ; /**************************************************************************
+ 0001           ; MODULE:    USER
+ 0001           ; CONTAINS:  MicroCANopen Object Dictionary and Process Image implementation
+ 0001           ; COPYRIGHT: Embedded Systems Academy, Inc. 2002-2005.
+ 0001           ;            All rights reserved. www.microcanopen.com
+ 0001           ;            This software was written in accordance to the guidelines at
+ 0001           ;            www.esacademy.com/software/softwarestyleguide.pdf
+ 0001           ; DISCLAIM:  Read and understand our disclaimer before using this code!
+ 0001           ;            www.esacademy.com/disclaim.htm
+ 0001           ; LICENSE:   THIS IS THE EDUCATIONAL VERSION OF MICROCANOPEN
+ 0001           ;            See file license_educational.txt or
+ 0001           ;            www.microcanopen.com/license_educational.txt
+ 0001           ;            A commercial MicroCANopen license is available at
+ 0001           ;            www.CANopenStore.com
+ 0001           ; VERSION:   2.10, ESA 12-JAN-05
+ 0001           ;            $LastChangedDate: 2005-01-12 13:53:59 -0700 (Wed, 12 Jan 2005) $
+ 0001           ;            $LastChangedRevision: 48 $
+ 0001           ; ***************************************************************************/ 
+ 0001           ; 
+ 0001           ; #include <string.h>
+ 0001           ; 
+ 0001           ; #include "Camera.h"
+ 0001           ; #include "mco.h"
+ 0001           ; #include "mcohw.h"
+ 0001           ; #include "mc9s12a128.h"
+ 0001           ; #include "subroutines.h"
+ 0001           ; 
+ 0001           ; // ensure the number of tpdos and rpdos is correct
+ 0001           ; #if (NR_OF_RPDOS != 8)
+ 0001           ;   #if (NR_OF_TPDOS != 8)
+ 0001           ; #error This example is for 8 TPDOs and 8 RPDOs only
+ 0001           ;   #endif
+ 0001           ; #endif
+ 0001           ; 
+ 0001           ; extern struct menu_var UnitNumber;
+ 0001           ; // global variables
+ 0001           ; 
+ 0001           ; // This structure holds all node specific configuration
+ 0001           ; UNSIGNED8 gProcImg[PROCIMG_SIZE];
+ 0001           ; 
+ 0001           ; // Table with SDO Responses for read requests to OD
+ 0001           ; // Each Row has 8 Bytes:
+ 0001           ; // Command Specifier for SDO Response (1 byte)
+ 0001           ; //   bits 2+3 contain: '4' � {number of data bytes}
+ 0001           ; // Object Dictionary Index (2 bytes, low first)
+ 0001           ; // Object Dictionary Subindex (1 byte)
+ 0001           ; // Data (4 bytes, lowest bytes first)
+ 0001           ; 
+ 0001           ; //UNSIGNED8 MEM_CONST SDOResponseTable[]
+ 0001           ; UNSIGNED8 SDOResponseTable[] = {
+ 0001           ; 
+ 0001           ;   // [1000h,00]: Device Type
+ 0001           ;   SDOREPLY(0x1000, 0x00, 4, OD_DEVICE_TYPE),
+ 0001           ; 
+ 0001           ; #ifdef OD_SERIAL
+ 0001           ;   // [1018h,00]: Identity Object, Number of Entries = 4
+ 0001           ;   SDOREPLY(0x1018, 0x00, 1, 0x00000004L),
+ 0001           ; #else
+ 0001           ;   // [1018h,00]: Identity Object, Number of Entries = 3
+ 0001           ;   SDOREPLY(0x1018, 0x00, 1, 0x00000003L),
+ 0001           ; #endif
+ 0001           ; 
+ 0001           ;   // [1018h,01]: Identity Object, Vendor ID
+ 0001           ;   SDOREPLY(0x1018, 0x01, 4, OD_VENDOR_ID),
+ 0001           ; 
+ 0001           ;   // [1018h,02]: Identity Object, Product Code
+ 0001           ;   SDOREPLY(0x1018, 0x02, 4, OD_PRODUCT_CODE),
+ 0001           ; 
+ 0001           ;   // [1018h,03]: Identity Object, Revision
+ 0001           ;   SDOREPLY(0x1018, 0x03, 4, OD_REVISION),
+ 0001           ; 
+ 0001           ; #ifdef OD_SERIAL
+ 0001           ;   // [1018h,04]: Identity Object, Serial
+ 0001           ;   SDOREPLY(0x1018, 0x04, 4, OD_SERIAL),
+ 0001           ; #endif
+ 0001           ; 
+ 0001           ;   // [2018h,00]: MicroCANopen Identity Object, Number of Entries = 3
+ 0001           ;   SDOREPLY(0x2018, 0x00, 1, 0x00000003L),
+ 0001           ; 
+ 0001           ;   // [2018h,01]: MicroCANopen Identity Object, Vendor ID = 01455341, ESA Inc.
+ 0001           ;   SDOREPLY(0x2018, 0x01, 4, 0x01455341L),
+ 0001           ; 
+ 0001           ;   // [2018h,02]: MicroCANopen Identity Object, Product Code = "MCOP"
+ 0001           ;   SDOREPLY4(0x2018, 0x02, 4, 'P', 'O', 'C', 'M'),
+ 0001           ; 
+ 0001           ;   // [2018h,03]: MicroCANopen Identity Object, Revision = 1.20
+ 0001           ;   SDOREPLY(0x2018, 0x03, 4, 0x00010020L),
+ 0001           ; 
+ 0001           ;   // [2100h,00]: MicroCANopen Identity Object, Number of Entries = 3
+ 0001           ;   SDOREPLY(0x2110, 0x00, 1, 0x00000004L),
+ 0001           ; 
+ 0001           ;   // [2100h,01]: MicroCANopen Identity Object, Vendor ID = 01455341, ESA Inc.
+ 0001           ;   SDOREPLY4(0x2110, 0x01, 4, 'C', 'A', 'M', 'E'),
+ 0001           ; 
+ 0001           ;   // [2100h,02]: MicroCANopen Identity Object, Product Code = "MCOP"
+ 0001           ;   SDOREPLY4(0x2110, 0x02, 4, 'R', 'A', ' ', ' '),
+ 0001           ; 
+ 0001           ;   // [2100h,03]: MicroCANopen Identity Object, Revision = 1.20
+ 0001           ;   SDOREPLY4(0x2110, 0x03, 4, ' ', ' ', ' ', ' '),
+ 0001           ; 
+ 0001           ;   // [2100h,04]: MicroCANopen Identity Object, Revision = 1.20
+ 0001           ;   SDOREPLY4(0x2110, 0x04, 4, ' ', ' ', ' ', 0x32),
+ 0001           ;  
+ 0001           ; 
+ 0001           ; #ifdef PDO_IN_OD
+ 0001           ;   // NOTE: These entries must be added manually. The parameters must match
+ 0001           ;   // the parameters used to call the functions MCO_InitRPDO and MCO_InitTPDO.
+ 0001           ; 
+ 0001           ;   // These entries are necessary to be fully CANopen compliant.
+ 0001           ;   // Suppported in commercial version of MicroCANopen available from
+ 0001           ;   // www.CANopenStore.com
+ 0001           ; 
+ 0001           ;   // Warning: This version is not fully CANopen compliant - PDO_IN_OD must not be defined
+ 0001           ;   #error Warning: This version of MicroCANopen has a limited Object Dictionary! Un-define PDO_IN_OD to confirm!
+ 0001           ; #endif // PDO_IN_OD
+ 0001           ; 
+ 0001           ;   // End-of-table marker
+ 0001           ;   SDOREPLY(0xFFFF, 0xFF, 0xFF, 0xFFFFFFFFL)
+ 0001           ; };
+ 0001           ; 
+ 0001           ; #ifdef PROCIMG_IN_OD
+ 0001           ;   // Table with Object Dictionary entries to process data.
+ 0001           ; 
+ 0001           ;   // These entries are necessary to be fully CANopen compliant.
+ 0001           ;   // Suppported in commercial version of MicroCANopen available from
+ 0001           ;   // www.CANopenStore.com
+ 0001           ; 
+ 0001           ;   // Warning: This version is not fully CANopen compliant - PROCIMG_IN_OD must not be defined
+ 0001           ;   #error Warning: This version of MicroCANopen has a limited Object Dictionary! Un-define PROCIMG_IN_OD to confirm!
+ 0001           ; #endif // PROCIMG_IN_OD
+ 0001           ; 
+ 0001           ; 
+ 0001           ; /**************************************************************************
+ 0001           ; DOES:    This function is called if a fatal error occurred. 
+ 0001           ;          Error codes of mcohwxxx.c are in the range of 0x8000 to 0x87FF.
+ 0001           ;          Error codes of mco.c are in the range of 0x8800 to 0x8FFF. 
+ 0001           ;          All other error codes may be used by the application.
+ 0001           ; RETURNS: nothing
+ 0001           ; **************************************************************************/
+ 0001           ; void MCOUSER_FatalError
+ 0001           ;   (
+ 0001           ;   UNSIGNED16 ErrCode  // the error code
+ 0001           ;   )
+ 0001           ; {
+ 0001                   .dbline -2
+ 0001           L6:
+ 0001                   .dbline 0 ; func end
+ 0001 1B82              leas 2,S
+ 0003 0A                rtc
+ 0004                   .dbsym l ErrCode 0 i
+ 0004                   .dbend
+ 0004                   .dbfunc e MCOUSER_ResetApplication _MCOUSER_ResetApplication fV
+ 0004           $_MCOUSER_ResetApplication::
+ 0004                   .dbline -1
+ 0004                   .dbline 158
+ 0004           ;   //display blinking pattern on led
+ 0004           ;   //error_state(ErrCode & 0xFF);
+ 0004           ; }
+ 0004           ; 
+ 0004           ; /**************************************************************************
+ 0004           ; DOES:    Call-back function for reset application.
+ 0004           ;          Starts the watchdog and waits until watchdog causes a reset.
+ 0004           ; RETURNS: nothing
+ 0004           ; **************************************************************************/
+ 0004           ; void MCOUSER_ResetApplication
+ 0004           ;   (
+ 0004           ;   void
+ 0004           ;   )
+ 0004           ; {
+ 0004                   .dbline 159
+ 0004           ;     COPCTL = 0x01;                            //enable COP 
+ 0004 180B01003C        movb #1,0x3c
+ 0009           L8:
+ 0009                   .dbline 160
+ 0009           ;       while (1);                                      //wait for reset
+ 0009           L9:
+ 0009                   .dbline 160
+ 0009 20FE              bra L8
+ 000B           X0:
+ 000B                   .dbline -2
+ 000B           L7:
+ 000B                   .dbline 0 ; func end
+ 000B 0A                rtc
+ 000C                   .dbend
+ 000C                   .dbfunc e MCOUSER_ResetCommunication _MCOUSER_ResetCommunication fV
+ 000C           ;              i -> 12,SP
+ 000C           $_MCOUSER_ResetCommunication::
+ 000C 1B93              leas -13,S
+ 000E                   .dbline -1
+ 000E                   .dbline 175
+ 000E           ; }
+ 000E           ; 
+ 000E           ; /**************************************************************************
+ 000E           ; DOES:    This function both resets and initializes both the CAN interface
+ 000E           ;          and the CANopen protocol stack. It is called from within the
+ 000E           ;          CANopen protocol stack, if a NMT master message was received that
+ 000E           ;          demanded "Reset Communication".
+ 000E           ;          This function should call MCO_Init and MCO_InitTPDO/MCO_InitRPDO.
+ 000E           ; RETURNS: nothing
+ 000E           ; **************************************************************************/
+ 000E           ; void MCOUSER_ResetCommunication
+ 000E           ;   (
+ 000E           ;   void
+ 000E           ;   )
+ 000E           ; {
+ 000E                   .dbline 178
+ 000E           ;   UNSIGNED8 i;
+ 000E           ; 
+ 000E           ;   INTR_OFF();
+ 000E 1410              sei
+ 0010                   .dbline 181
+ 0010           ; 
+ 0010           ;   // Initialize Process Variables
+ 0010           ;   for (i = 0; i < PROCIMG_SIZE; i++)
+ 0010 698C              clr 12,S
+ 0012 2013              bra L15
+ 0014           L12:
+ 0014                   .dbline 182
+ 0014           ;   {
+ 0014                   .dbline 183
+ 0014           ;     gProcImg[i] = 0;
+ 0014 CD0000            ldy #_gProcImg
+ 0017 E68C              ldab 12,S
+ 0019 87                clra
+ 001A 6D8A              sty 10,S
+ 001C E38A              addd 10,S
+ 001E B746              tfr D,Y
+ 0020 CC0000            ldd #0
+ 0023 6B40              stab 0,Y
+ 0025                   .dbline 184
+ 0025           ;   }
+ 0025           L13:
+ 0025                   .dbline 181
+ 0025 628C              inc 12,S
+ 0027           L15:
+ 0027                   .dbline 181
+ 0027 E68C              ldab 12,S
+ 0029 C130              cmpb #48
+ 002B 25E7              blo L12
+ 002D                   .dbline 187
+ 002D           ; 
+ 002D           ;   // 125kbit, Node 1, No heartbeat
+ 002D           ;   MCO_Init(125, NODE_ID, 0); 
+ 002D CD0000            ldy #0
+ 0030 6D82              sty 2,S
+ 0032 CD0021            ldy #33
+ 0035 6D80              sty 0,S
+ 0037 CC007D            ldd #125
+ 003A 4A000000          xcall $_MCO_Init
+ 003E                   .dbline 195
+ 003E           ;   
+ 003E           ;   
+ 003E           ;   //Initiate Menu/Trigger
+ 003E           ;   // RPDO1, ID ($NODEID+0x200), 1 bytes
+ 003E           ;   //MCO_InitRPDO(1,0,1,OUT_digi_0); 
+ 003E           ; 
+ 003E           ;   // RPDO2, ID ($NODEID+0x300), 3 bytes, Button box data 
+ 003E           ;   MCO_InitRPDO(2,0x180,3,OUT_digi_1); 
+ 003E CD0018            ldy #24
+ 0041 6D84              sty 4,S
+ 0043 CD0003            ldy #3
+ 0046 6D82              sty 2,S
+ 0048 CD0180            ldy #384
+ 004B 6D80              sty 0,S
+ 004D CC0002            ldd #2
+ 0050 4A000000          xcall $_MCO_InitRPDO
+ 0054                   .dbline 199
+ 0054           ; 
+ 0054           ;   //camera address is received on out_digi_3 and out_digi_4
+ 0054           ;   // RPDO3, default ID (0x400+nodeID), 2 bytes
+ 0054           ;   MCO_InitRPDO(3,0,2,OUT_digi_4);
+ 0054 CD001B            ldy #27
+ 0057 6D84              sty 4,S
+ 0059 CD0002            ldy #2
+ 005C 6D82              sty 2,S
+ 005E CD0000            ldy #0
+ 0061 6D80              sty 0,S
+ 0063 CC0003            ldd #3
+ 0066 4A000000          xcall $_MCO_InitRPDO
+ 006A                   .dbline 203
+ 006A           ; 
+ 006A           ;   // command from controller is received on out_digi_5, out...6,7 have data with command    
+ 006A           ;   // RPDO4, default ID (0x500+nodeID), 5 bytes
+ 006A           ;   MCO_InitRPDO(4,0,5,OUT_digi_6);       //command RPDO 
+ 006A CD001D            ldy #29
+ 006D 6D84              sty 4,S
+ 006F CD0005            ldy #5
+ 0072 6D82              sty 2,S
+ 0074 CD0000            ldy #0
+ 0077 6D80              sty 0,S
+ 0079 CC0004            ldd #4
+ 007C 4A000000          xcall $_MCO_InitRPDO
+ 0080                   .dbline 219
+ 0080           ; 
+ 0080           ;   // RPDO5, default ID (), 2 bytes
+ 0080           ;   //MCO_InitRPDO(5,0x421,2,OUT_digi_12); 
+ 0080           ;  
+ 0080           ;   // RPDO6, default ID (), 5 bytes
+ 0080           ;   //MCO_InitRPDO(6,0x521,5,OUT_digi_14);       //command RPDO 
+ 0080           ; 
+ 0080           ;   // RPDO7, default ID (), 1 byte
+ 0080           ;   //MCO_InitRPDO(7,0x1c8,1,OUT_digi_11);       
+ 0080           ;  
+ 0080           ;  
+ 0080           ;  
+ 0080           ;  
+ 0080           ;  
+ 0080           ;   // TPDO1, default ID ($NODEID+0x180), 0ms event, 100ms inhibit, 1 bytes, Menu Status
+ 0080           ;   MCO_InitTPDO(1,0x200,0,100,1,IN_digi_0); 
+ 0080 CD0000            ldy #0
+ 0083 6D88              sty 8,S
+ 0085 CD0001            ldy #1
+ 0088 6D86              sty 6,S
+ 008A CD0064            ldy #100
+ 008D 6D84              sty 4,S
+ 008F CD0000            ldy #0
+ 0092 6D82              sty 2,S
+ 0094 CD0200            ldy #512
+ 0097 6D80              sty 0,S
+ 0099 CC0001            ldd #1
+ 009C 4A000000          xcall $_MCO_InitTPDO
+ 00A0                   .dbline -2
+ 00A0           L11:
+ 00A0                   .dbline 0 ; func end
+ 00A0 1B8D              leas 13,S
+ 00A2 0A                rtc
+ 00A3                   .dbsym l i 12 c
+ 00A3                   .dbend
+                        .area bss
+ 0000                   .dbfile C:\Dev\REV1~1.01\user.c
+ 0000           _gProcImg::
+ 0000                   .blkb 48
+ 0030                   .dbsym e gProcImg _gProcImg A[48:48]c

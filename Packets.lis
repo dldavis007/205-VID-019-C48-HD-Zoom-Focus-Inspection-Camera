@@ -1,0 +1,657 @@
+                        .module Packets.c
+                        .area text
+ 0000                   .dbfile ..\REV1~1.01\Packets.c
+                        .area data
+ 0000                   .dbfile ..\REV1~1.01\Packets.c
+ 0000           _Rcv_Packet_Data::
+ 0000                   .blkb 1
+                        .area idata
+ 0000 00                .byte 0
+                        .area data
+ 0001                   .dbfile ..\REV1~1.01\Packets.c
+ 0001                   .blkb 127
+                        .area idata
+ 0001 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 003D 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ 0079 00000000000000    .byte 0,0,0,0,0,0,0
+                        .area data
+ 0080                   .dbfile ..\REV1~1.01\Packets.c
+ 0080                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 0080                   .dbsym e Rcv_Packet_Data _Rcv_Packet_Data A[128:128]c
+ 0080           L7:
+ 0080                   .blkb 1
+                        .area idata
+ 0080 00                .byte 0
+                        .area data
+ 0081                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 0081           L8:
+ 0081                   .blkb 1
+                        .area idata
+ 0081 01                .byte 1
+                        .area data
+ 0082                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 0082           L9:
+ 0082                   .blkb 1
+                        .area idata
+ 0082 00                .byte 0
+                        .area data
+ 0083                   .dbfile C:\Dev\REV1~1.01\Packets.c
+                        .area extcode(paged)
+ 0000                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 0000                   .dbfunc e receivePackets _receivePackets fc
+ 0000                   .dbsym s Rcv_Packet_Bytes L9 c
+ 0000                   .dbsym s Next_Rcv_Packet L8 c
+ 0000                   .dbsym s Rcving_Packets L7 c
+ 0000           ;  Packet_Number -> 3,SP
+ 0000           ;              i -> 4,SP
+ 0000           ;       Rcv_Data -> 6,SP
+ 0000           $_receivePackets::
+ 0000 3B                pshd
+ 0001 1B9A              leas -6,S
+ 0003                   .dbline -1
+ 0003                   .dbline 14
+ 0003           ; #include "Subroutines.h"
+ 0003           ; #include "mcohw.h"
+ 0003           ; #include "Packets.h"
+ 0003           ; 
+ 0003           ; // external declaration for the process image array
+ 0003           ; extern UNSIGNED8 gProcImg[];
+ 0003           ; 
+ 0003           ; char Rcv_Packet_Data[128] = {0}; //this is a little more than 18 packets (7 bytes each)
+ 0003           ; /**
+ 0003           ;  * Receives packets and stores the data in the provided array.
+ 0003           ;  * @param Rcv_Data The array to store the received data.
+ 0003           ;  * @return The number of bytes received if a complete packet is received, 0 otherwise.
+ 0003           ;  */
+ 0003           ; char receivePackets(char Rcv_Data[]) {
+ 0003                   .dbline 24
+ 0003           ; 
+ 0003           ;       #define LAST_PKT 0b00100000
+ 0003           ; 
+ 0003           ;     int i;
+ 0003           ;     static char Rcving_Packets = 0;
+ 0003           ;     static char Next_Rcv_Packet = 1;
+ 0003           ;     static char Rcv_Packet_Bytes = 0;
+ 0003           ; 
+ 0003           ;     // Extract the packet number from gProcImg[OUT_digi_0]
+ 0003           ;     char Packet_Number = ((gProcImg[OUT_digi_0] & 0xfc) >> 2);
+ 0003 F60017            ldab _gProcImg+23
+ 0006 87                clra
+ 0007 8400              anda #0
+ 0009 C4FC              andb #-4
+ 000B 47                asra
+ 000C 56                rorb
+ 000D 47                asra
+ 000E 56                rorb
+ 000F 6B83              stab 3,S
+ 0011                   .dbline 26
+ 0011           ; 
+ 0011           ;     if (Packet_Number) {
+ 0011 C100              cmpb #0
+ 0013 18270128          lbeq L11
+ 0017                   .dbline 26
+ 0017                   .dbline 27
+ 0017           ;         gProcImg[OUT_digi_0] = 0;
+ 0017 790017            clr _gProcImg+23
+ 001A                   .dbline 29
+ 001A           ; 
+ 001A           ;         if (Rcving_Packets) {
+ 001A F60080            ldab L7
+ 001D C100              cmpb #0
+ 001F 18270083          lbeq L14
+ 0023                   .dbline 29
+ 0023                   .dbline 32
+ 0023           ;             // Already receiving packets
+ 0023           ; 
+ 0023           ;             if (Packet_Number == Next_Rcv_Packet) {
+ 0023 E683              ldab 3,S
+ 0025 F10081            cmpb L8
+ 0028 2645              bne L16
+ 002A                   .dbline 32
+ 002A                   .dbline 34
+ 002A           ;                 // Correct packet received
+ 002A           ;                 for (i = 0; i < 7; i++) {
+ 002A 1800840000        movw #0,4,S
+ 002F           L18:
+ 002F                   .dbline 34
+ 002F                   .dbline 35
+ 002F           ;                     Rcv_Data[(Packet_Number - 1) * 7 + i] = gProcImg[OUT_digi_0 + i + 1];
+ 002F EC84              ldd 4,S
+ 0031 CD0018            ldy #_gProcImg+24
+ 0034 6D80              sty 0,S
+ 0036 E380              addd 0,S
+ 0038 B746              tfr D,Y
+ 003A E640              ldab 0,Y
+ 003C 6B82              stab 2,S
+ 003E E683              ldab 3,S
+ 0040 87                clra
+ 0041 B745              tfr D,X
+ 0043 CC0007            ldd #7
+ 0046 B756              tfr X,Y
+ 0048 13                emul
+ 0049 830007            subd #7
+ 004C E384              addd 4,S
+ 004E E386              addd 6,S
+ 0050 B746              tfr D,Y
+ 0052 E682              ldab 2,S
+ 0054 6B40              stab 0,Y
+ 0056                   .dbline 36
+ 0056           ;                 }
+ 0056           L19:
+ 0056                   .dbline 34
+ 0056 ED84              ldy 4,S
+ 0058 02                iny
+ 0059 6D84              sty 4,S
+ 005B                   .dbline 34
+ 005B 8D0007            cpy #7
+ 005E 2DCF              blt L18
+ 0060                   .dbline 37
+ 0060           ;                 Next_Rcv_Packet++;
+ 0060 720081            inc L8
+ 0063                   .dbline 38
+ 0063           ;                 Rcv_Packet_Bytes += 7;
+ 0063 F60082            ldab L9
+ 0066 CB07              addb #7
+ 0068 7B0082            stab L9
+ 006B                   .dbline 39
+ 006B           ;             } else if (Packet_Number & LAST_PKT) {
+ 006B 182000D0          lbra L15
+ 006F           L16:
+ 006F                   .dbline 39
+ 006F 0F832024          brclr 3,S,#32,L23
+ 0073                   .dbline 39
+ 0073                   .dbline 41
+ 0073           ;                 // Last packet or wrong packet, stop receiving
+ 0073           ;                 Rcving_Packets = 0;
+ 0073 790080            clr L7
+ 0076                   .dbline 42
+ 0076           ;                 Next_Rcv_Packet = 1;
+ 0076 180B010081        movb #1,L8
+ 007B                   .dbline 43
+ 007B           ;                 Rcv_Packet_Bytes += (Packet_Number & ~LAST_PKT);
+ 007B E683              ldab 3,S
+ 007D 87                clra
+ 007E 84FF              anda #-1
+ 0080 C4DF              andb #-33
+ 0082 B746              tfr D,Y
+ 0084 F60082            ldab L9
+ 0087 87                clra
+ 0088 6D80              sty 0,S
+ 008A E380              addd 0,S
+ 008C 7B0082            stab L9
+ 008F                   .dbline 44
+ 008F           ;                 return Rcv_Packet_Bytes;
+ 008F F60082            ldab L9
+ 0092 87                clra
+ 0093 182000AB          lbra L6
+ 0097           L23:
+ 0097                   .dbline 45
+ 0097           ;             } else {
+ 0097                   .dbline 47
+ 0097           ;                 // Last or wrong packet, stop receiving
+ 0097           ;                 Rcving_Packets = 0;
+ 0097 790080            clr L7
+ 009A                   .dbline 48
+ 009A           ;                 Next_Rcv_Packet = 1;
+ 009A 180B010081        movb #1,L8
+ 009F                   .dbline 49
+ 009F           ;                 Rcv_Packet_Bytes = 0;
+ 009F 790082            clr L9
+ 00A2                   .dbline 50
+ 00A2           ;             }
+ 00A2                   .dbline 51
+ 00A2           ;         } else {
+ 00A2 18200099          lbra L15
+ 00A6           L14:
+ 00A6                   .dbline 51
+ 00A6                   .dbline 54
+ 00A6           ;             // Not receiving packets
+ 00A6           ; 
+ 00A6           ;             if (Packet_Number == 1) {
+ 00A6 E683              ldab 3,S
+ 00A8 C101              cmpb #1
+ 00AA 2647              bne L25
+ 00AC                   .dbline 54
+ 00AC                   .dbline 56
+ 00AC           ;                 // First packet received
+ 00AC           ;                 Rcving_Packets = 1;
+ 00AC 180B010080        movb #1,L7
+ 00B1                   .dbline 57
+ 00B1           ;                 Next_Rcv_Packet = 2;
+ 00B1 180B020081        movb #2,L8
+ 00B6                   .dbline 58
+ 00B6           ;                 Rcv_Packet_Bytes = 7;
+ 00B6 180B070082        movb #7,L9
+ 00BB                   .dbline 59
+ 00BB           ;                 for (i = 0; i < 7; i++) {
+ 00BB 1800840000        movw #0,4,S
+ 00C0           L27:
+ 00C0                   .dbline 59
+ 00C0                   .dbline 60
+ 00C0           ;                     Rcv_Data[(Packet_Number - 1) * 7 + i] = gProcImg[OUT_digi_0 + i + 1];
+ 00C0 EC84              ldd 4,S
+ 00C2 CD0018            ldy #_gProcImg+24
+ 00C5 6D80              sty 0,S
+ 00C7 E380              addd 0,S
+ 00C9 B746              tfr D,Y
+ 00CB E640              ldab 0,Y
+ 00CD 6B82              stab 2,S
+ 00CF E683              ldab 3,S
+ 00D1 87                clra
+ 00D2 B745              tfr D,X
+ 00D4 CC0007            ldd #7
+ 00D7 B756              tfr X,Y
+ 00D9 13                emul
+ 00DA 830007            subd #7
+ 00DD E384              addd 4,S
+ 00DF E386              addd 6,S
+ 00E1 B746              tfr D,Y
+ 00E3 E682              ldab 2,S
+ 00E5 6B40              stab 0,Y
+ 00E7                   .dbline 61
+ 00E7           ;                 }
+ 00E7           L28:
+ 00E7                   .dbline 59
+ 00E7 ED84              ldy 4,S
+ 00E9 02                iny
+ 00EA 6D84              sty 4,S
+ 00EC                   .dbline 59
+ 00EC 8D0007            cpy #7
+ 00EF 2DCF              blt L27
+ 00F1                   .dbline 62
+ 00F1           ;             } else if (Packet_Number & LAST_PKT) {
+ 00F1 204C              bra L26
+ 00F3           L25:
+ 00F3                   .dbline 62
+ 00F3 0F83203D          brclr 3,S,#32,L32
+ 00F7                   .dbline 62
+ 00F7                   .dbline 64
+ 00F7           ;                 // Last packet received
+ 00F7           ;                 Rcv_Packet_Bytes = (Packet_Number & ~LAST_PKT);
+ 00F7 E683              ldab 3,S
+ 00F9 C4DF              andb #65503
+ 00FB 7B0082            stab L9
+ 00FE                   .dbline 65
+ 00FE           ;                 Rcving_Packets = 0;
+ 00FE 790080            clr L7
+ 0101                   .dbline 66
+ 0101           ;                 Next_Rcv_Packet = 1;
+ 0101 180B010081        movb #1,L8
+ 0106                   .dbline 67
+ 0106           ;                 for (i = 0; i < 7; i++) {
+ 0106 1800840000        movw #0,4,S
+ 010B           L34:
+ 010B                   .dbline 67
+ 010B                   .dbline 68
+ 010B           ;                     Rcv_Data[i] = gProcImg[OUT_digi_0 + i + 1];
+ 010B EC84              ldd 4,S
+ 010D CD0018            ldy #_gProcImg+24
+ 0110 6D80              sty 0,S
+ 0112 E380              addd 0,S
+ 0114 B746              tfr D,Y
+ 0116 E640              ldab 0,Y
+ 0118 B716              tfr B,Y
+ 011A EC84              ldd 4,S
+ 011C E386              addd 6,S
+ 011E B745              tfr D,X
+ 0120 B761              tfr Y,B
+ 0122 6B00              stab 0,X
+ 0124                   .dbline 69
+ 0124           ;                 }
+ 0124           L35:
+ 0124                   .dbline 67
+ 0124 ED84              ldy 4,S
+ 0126 02                iny
+ 0127 6D84              sty 4,S
+ 0129                   .dbline 67
+ 0129 8D0007            cpy #7
+ 012C 2DDD              blt L34
+ 012E                   .dbline 70
+ 012E           ;                 return Rcv_Packet_Bytes;
+ 012E F60082            ldab L9
+ 0131 87                clra
+ 0132 200E              bra L6
+ 0134           L32:
+ 0134                   .dbline 71
+ 0134           ;             } else {
+ 0134                   .dbline 73
+ 0134           ;                 // Last or wrong packet, stop receiving
+ 0134           ;                 Rcving_Packets = 0;
+ 0134 790080            clr L7
+ 0137                   .dbline 74
+ 0137           ;                 Next_Rcv_Packet = 1;
+ 0137 180B010081        movb #1,L8
+ 013C                   .dbline 75
+ 013C           ;                 Rcv_Packet_Bytes = 0;
+ 013C 790082            clr L9
+ 013F                   .dbline 76
+ 013F           ;             }
+ 013F           L26:
+ 013F                   .dbline 77
+ 013F           ;         }
+ 013F           L15:
+ 013F                   .dbline 78
+ 013F           ;     }
+ 013F           L11:
+ 013F                   .dbline 80
+ 013F           ; 
+ 013F           ;     return 0;
+ 013F CC0000            ldd #0
+ 0142                   .dbline -2
+ 0142           L6:
+ 0142                   .dbline 0 ; func end
+ 0142 1B88              leas 8,S
+ 0144 0A                rtc
+ 0145                   .dbsym l Packet_Number 3 c
+ 0145                   .dbsym l i 4 I
+ 0145                   .dbsym l Rcv_Data 6 pc
+ 0145                   .dbend
+ 0145                   .dbfunc e sendPacket _sendPacket fV
+ 0145                   .dbstruct 0 12 .2
+ 0145                   .dbfield 0 ID i
+ 0145                   .dbfield 2 LEN c
+ 0145                   .dbfield 3 dummy32bit c
+ 0145                   .dbfield 4 BUF A[8:8]c
+ 0145                   .dbend
+ 0145           ; CAN_Packet_MSG -> 4,SP
+ 0145           ;              i -> 16,SP
+ 0145           ;         length -> 26,SP
+ 0145           ;     packetData -> 24,SP
+ 0145           ;   packetNumber -> 22,SP
+ 0145           ;    dest_nodeID -> 17,SP
+ 0145           $_sendPacket::
+ 0145 3B                pshd
+ 0146 1BF1EF            leas -17,S
+ 0149                   .dbline -1
+ 0149                   .dbline 83
+ 0149           ; }
+ 0149           ; 
+ 0149           ; void sendPacket(int dest_nodeID, int packetNumber, char packetData[], int length) {
+ 0149                   .dbline 86
+ 0149           ;       CAN_MSG CAN_Packet_MSG;
+ 0149           ;     char i;
+ 0149           ;       packetNumber <<= 2; // Shifting left by 2 locations
+ 0149 ECF016            ldd 22,S
+ 014C 59                lsld
+ 014D 59                lsld
+ 014E 6CF016            std 22,S
+ 0151                   .dbline 89
+ 0151           ; 
+ 0151           ;     // Assign values to CAN_Packet_MSG members
+ 0151           ;     CAN_Packet_MSG.ID = dest_nodeID;
+ 0151 1AF011            leax 17,S
+ 0154 18020084          movw 0,x,4,S
+ 0158                   .dbline 90
+ 0158           ;     CAN_Packet_MSG.LEN = 8;
+ 0158 18088608          movb #8,6,S
+ 015C                   .dbline 91
+ 015C           ;     CAN_Packet_MSG.dummy32bit = 0;
+ 015C 6987              clr 7,S
+ 015E                   .dbline 92
+ 015E           ;     CAN_Packet_MSG.BUF[0] = packetNumber;
+ 015E E6F017            ldab 23,S
+ 0161 6B88              stab 8,S
+ 0163                   .dbline 94
+ 0163           ;       
+ 0163           ;     for (i = 0; i < 7; i++) {
+ 0163 69F010            clr 16,S
+ 0166 2032              bra L46
+ 0168           L43:
+ 0168                   .dbline 94
+ 0168                   .dbline 95
+ 0168           ;         CAN_Packet_MSG.BUF[i+1] = i<length ? packetData[i] : 0;
+ 0168 E6F010            ldab 16,S
+ 016B 87                clra
+ 016C ACF01A            cpd 26,S
+ 016F 2C10              bge L50
+ 0171 E6F010            ldab 16,S
+ 0174 87                clra
+ 0175 E3F018            addd 24,S
+ 0178 B746              tfr D,Y
+ 017A E640              ldab 0,Y
+ 017C 87                clra
+ 017D 6C82              std 2,S
+ 017F 2005              bra L51
+ 0181           L50:
+ 0181 1800820000        movw #0,2,S
+ 0186           L51:
+ 0186 1989              leay 9,S
+ 0188 E6F010            ldab 16,S
+ 018B 87                clra
+ 018C 6D80              sty 0,S
+ 018E E380              addd 0,S
+ 0190 B746              tfr D,Y
+ 0192 EC82              ldd 2,S
+ 0194 87                clra
+ 0195 6B40              stab 0,Y
+ 0197                   .dbline 96
+ 0197           ;     }
+ 0197           L44:
+ 0197                   .dbline 94
+ 0197 62F010            inc 16,S
+ 019A           L46:
+ 019A                   .dbline 94
+ 019A E6F010            ldab 16,S
+ 019D C107              cmpb #7
+ 019F 25C7              blo L43
+ 01A1                   .dbline 97
+ 01A1           ;       if (!MCOHW_PushMessage(&CAN_Packet_MSG))
+ 01A1 1984              leay 4,S
+ 01A3 B764              tfr Y,D
+ 01A5 4A000000          xcall $_MCOHW_PushMessage
+ 01A9 87                clra
+ 01AA C100              cmpb #0
+ 01AC 2607              bne L52
+ 01AE                   .dbline 98
+ 01AE           ;     {
+ 01AE                   .dbline 100
+ 01AE           ;       // failed to transmit
+ 01AE           ;       MCOUSER_FatalError(0x8801);
+ 01AE CC8801            ldd #34817
+ 01B1 4A000000          xcall $_MCOUSER_FatalError
+ 01B5                   .dbline 101
+ 01B5           ;     }
+ 01B5           L52:
+ 01B5                   .dbline -2
+ 01B5           L39:
+ 01B5                   .dbline 0 ; func end
+ 01B5 1BF013            leas 19,S
+ 01B8 0A                rtc
+ 01B9                   .dbsym l CAN_Packet_MSG 4 S[.2]
+ 01B9                   .dbsym l i 16 c
+ 01B9                   .dbsym l length 26 I
+ 01B9                   .dbsym l packetData 24 pc
+ 01B9                   .dbsym l packetNumber 22 I
+ 01B9                   .dbsym l dest_nodeID 17 I
+ 01B9                   .dbend
+                        .area text
+ 0000                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 0000           L55:
+ 0000 00                .byte 0
+ 0001 00000000000000    .byte 0,0,0,0,0,0,0
+                        .area extcode(paged)
+ 01B9                   .dbfile C:\Dev\REV1~1.01\Packets.c
+ 01B9                   .dbfunc e sendPackets _sendPackets fV
+ 01B9           ; emptyPacketDataLength -> 11,SP
+ 01B9           ; emptyPacketData -> 13,SP
+ 01B9           ;    dest_nodeID -> 21,SP
+ 01B9           ;   packetNumber -> 23,SP
+ 01B9           ;     packetData -> 25,SP
+ 01B9           ; packetDataLength -> 32,SP
+ 01B9           ;              i -> 34,SP
+ 01B9           ;              j -> 35,SP
+ 01B9           ;         length -> 41,SP
+ 01B9           ;           data -> 36,SP
+ 01B9           $_sendPackets::
+ 01B9 3B                pshd
+ 01BA 1BF1DC            leas -36,S
+ 01BD                   .dbline -1
+ 01BD                   .dbline 104
+ 01BD           ; }
+ 01BD           ; 
+ 01BD           ; void sendPackets(char data[], int length) {
+ 01BD                   .dbline 109
+ 01BD           ; 
+ 01BD           ;       #define LAST_PKT 0b00100000
+ 01BD           ; 
+ 01BD           ;     char i,j;
+ 01BD           ;       int packetNumber = 1;
+ 01BD 19F017            leay 23,S
+ 01C0 1800400001        movw #1,0,y
+ 01C5                   .dbline 110
+ 01C5           ;     int dest_nodeID = 0x200;
+ 01C5 19F015            leay 21,S
+ 01C8 1800400200        movw #512,0,y
+ 01CD                   .dbline 111
+ 01CD           ;     char emptyPacketData[8] = {0};  // Empty packet data
+ 01CD CD0000            ldy #L55
+ 01D0 1A8D              leax 13,S
+ 01D2 CC0004            ldd #4
+ 01D5           X0:
+ 01D5 18027131          movw 2,Y+,2,X+
+ 01D9 0434F9            dbne D,X0
+ 01DC                   .dbline 112
+ 01DC           ;     int emptyPacketDataLength = 0;
+ 01DC 18008B0000        movw #0,11,S
+ 01E1                   .dbline 113
+ 01E1           ;       int packetDataLength = 0;
+ 01E1 1AF020            leax 32,S
+ 01E4 1800000000        movw #0,0,x
+ 01E9                   .dbline 116
+ 01E9           ;     char packetData[7];
+ 01E9           ;       
+ 01E9           ;     for (i = 0; i < length; i += 6) {
+ 01E9 69F022            clr 34,S
+ 01EC 1820009D          lbra L59
+ 01F0           L56:
+ 01F0                   .dbline 116
+ 01F0                   .dbline 117
+ 01F0           ;               if (length - i < 7) {
+ 01F0 E6F022            ldab 34,S
+ 01F3 87                clra
+ 01F4 B746              tfr D,Y
+ 01F6 ECF029            ldd 41,S
+ 01F9 6D86              sty 6,S
+ 01FB A386              subd 6,S
+ 01FD 8C0007            cpd #7
+ 0200 2C18              bge L60
+ 0202                   .dbline 117
+ 0202                   .dbline 119
+ 0202           ;                   // Last packet, set end indicator and add number of bytes
+ 0202           ;                       packetDataLength = length - i;
+ 0202 E6F022            ldab 34,S
+ 0205 87                clra
+ 0206 B746              tfr D,Y
+ 0208 ECF029            ldd 41,S
+ 020B 6D86              sty 6,S
+ 020D A386              subd 6,S
+ 020F 6CF020            std 32,S
+ 0212                   .dbline 120
+ 0212           ;                       packetNumber = LAST_PKT + packetDataLength;
+ 0212 C30020            addd #32
+ 0215 6CF017            std 23,S
+ 0218                   .dbline 121
+ 0218           ;               }
+ 0218 2008              bra L61
+ 021A           L60:
+ 021A                   .dbline 122
+ 021A           ;               else {
+ 021A                   .dbline 124
+ 021A           ;                   // Not the last packet
+ 021A           ;                       packetDataLength = 6;
+ 021A 1AF020            leax 32,S
+ 021D 1800000006        movw #6,0,x
+ 0222                   .dbline 125
+ 0222           ;               }
+ 0222           L61:
+ 0222                   .dbline 127
+ 0222           ; 
+ 0222           ;               packetData[0] = NODE_ID;
+ 0222 1AF019            leax 25,S
+ 0225 18080021          movb #33,0,x
+ 0229                   .dbline 129
+ 0229           ;         // Copy 6 elements to the packet data
+ 0229           ;         for (j = 0; j < packetDataLength; j++) {
+ 0229 69F023            clr 35,S
+ 022C 202B              bra L65
+ 022E           L62:
+ 022E                   .dbline 129
+ 022E                   .dbline 130
+ 022E           ;             packetData[j+1] = data[i + j];
+ 022E E6F023            ldab 35,S
+ 0231 87                clra
+ 0232 B746              tfr D,Y
+ 0234 E6F022            ldab 34,S
+ 0237 87                clra
+ 0238 6D86              sty 6,S
+ 023A E386              addd 6,S
+ 023C E3F024            addd 36,S
+ 023F B746              tfr D,Y
+ 0241 E640              ldab 0,Y
+ 0243 6B8A              stab 10,S
+ 0245 1AF01A            leax 26,S
+ 0248 E6F023            ldab 35,S
+ 024B 87                clra
+ 024C 6E86              stx 6,S
+ 024E E386              addd 6,S
+ 0250 B746              tfr D,Y
+ 0252 E68A              ldab 10,S
+ 0254 6B40              stab 0,Y
+ 0256                   .dbline 131
+ 0256           ;         }
+ 0256           L63:
+ 0256                   .dbline 129
+ 0256 62F023            inc 35,S
+ 0259           L65:
+ 0259                   .dbline 129
+ 0259 E6F023            ldab 35,S
+ 025C 87                clra
+ 025D ACF020            cpd 32,S
+ 0260 2DCC              blt L62
+ 0262                   .dbline 134
+ 0262           ; 
+ 0262           ;         // Send the packet
+ 0262           ;         sendPacket(dest_nodeID, packetNumber++, packetData, packetDataLength+1);
+ 0262 EDF020            ldy 32,S
+ 0265 02                iny
+ 0266 6D84              sty 4,S
+ 0268 19F019            leay 25,S
+ 026B 6D82              sty 2,S
+ 026D 19F017            leay 23,S
+ 0270 18024088          movw 0,y,8,S
+ 0274 ED88              ldy 8,S
+ 0276 02                iny
+ 0277 6DF017            sty 23,S
+ 027A ED88              ldy 8,S
+ 027C 6D80              sty 0,S
+ 027E ECF015            ldd 21,S
+ 0281 4A014545          xcall $_sendPacket
+ 0285                   .dbline 135
+ 0285           ;     }
+ 0285           L57:
+ 0285                   .dbline 116
+ 0285 E6F022            ldab 34,S
+ 0288 CB06              addb #6
+ 028A 6BF022            stab 34,S
+ 028D           L59:
+ 028D                   .dbline 116
+ 028D E6F022            ldab 34,S
+ 0290 87                clra
+ 0291 ACF029            cpd 41,S
+ 0294 182DFF58          lblt L56
+ 0298                   .dbline -2
+ 0298           L54:
+ 0298                   .dbline 0 ; func end
+ 0298 1BF026            leas 38,S
+ 029B 0A                rtc
+ 029C                   .dbsym l emptyPacketDataLength 11 I
+ 029C                   .dbsym l emptyPacketData 13 A[8:8]c
+ 029C                   .dbsym l dest_nodeID 21 I
+ 029C                   .dbsym l packetNumber 23 I
+ 029C                   .dbsym l packetData 25 A[7:7]c
+ 029C                   .dbsym l packetDataLength 32 I
+ 029C                   .dbsym l i 34 c
+ 029C                   .dbsym l j 35 c
+ 029C                   .dbsym l length 41 I
+ 029C                   .dbsym l data 36 pc
+ 029C                   .dbend
