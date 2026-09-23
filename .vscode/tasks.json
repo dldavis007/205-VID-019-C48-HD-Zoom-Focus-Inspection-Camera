@@ -1,45 +1,40 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Build Project",
-            "type": "shell",
-            "command": "${workspaceFolder}/.vscode/build.bat",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "detail": "Runs the project build process by deleting .o files and compiling the project.",
-            "options": {
-                "cwd": "${workspaceFolder}/.vscode"
-            }
-        },
-        {
-            "label": "VSConvert Task",
-            "type": "shell",
-            "command": "${workspaceFolder}/.vscode/vsconvert.bat",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "detail": "Organizes project files and modifies .src file.",
-            "options": {
-                "cwd": "${workspaceFolder}/.vscode"
-            }
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PC-Side: Build & Run",
+      "type": "shell",
+      "command": "mingw32-make run",
+      "options": { "cwd": "${workspaceFolder}/pc_side" },
+      "group": "test",
+      "problemMatcher": ["$gcc"],
+      "presentation": { "reveal": "always", "focus": true, "panel": "dedicated" },
+      "detail": "Builds and runs the camera PC host with simulated RTI and UDP CAN."
+    },
+    {
+      "label": "Test: Camera PC Regression",
+      "type": "shell",
+      "command": "python run_tests.py",
+      "options": { "cwd": "${workspaceFolder}/tests" },
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "focus": true, "panel": "dedicated" }
+    },
+    {
+      "label": "PC-SIDE: Tests, Build & Run",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Test: Camera PC Regression", "PC-Side: Build & Run"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Embedded: Build Project",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/Build.bat",
+      "options": { "cwd": "${workspaceFolder}/.vscode" },
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Builds target firmware with the installed ImageCraft toolchain."
+    }
+  ]
 }

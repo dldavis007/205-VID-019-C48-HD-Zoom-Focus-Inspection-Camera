@@ -6,6 +6,8 @@
                 "${workspaceFolder}/**"
             ],
             "defines": [
+                "PC_SIDE",
+                "SKIP_EEPROM_LOAD",
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"

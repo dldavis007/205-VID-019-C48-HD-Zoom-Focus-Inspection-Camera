@@ -21,6 +21,7 @@ SUBS_DIRECT_FINCS  := -include stubs/CamMenu.h
 SUBS_DIRECT_STUBS := stubs/CamMenu.h
 
 LDFLAGS := -Wl,--gc-sections
+LDLIBS := -lm
 
 UNITY := unity/unity.c
 
@@ -32,10 +33,10 @@ TEST_EXES := $(TEST_SRCS:.c=.exe)
 all: run
 
 run: $(TEST_EXES)
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "$$fail = 0; $$tests = '$(TEST_EXES)'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries); Write-Host ''; Write-Host '=============================='; Write-Host 'Running all unit tests'; Write-Host '=============================='; foreach ($$test in $$tests) { Write-Host ''; Write-Host '=============================='; Write-Host ('Running ' + $$test); Write-Host '=============================='; & ('.\' + $$test); if ($$LASTEXITCODE -ne 0) { $$fail = 1 } }; exit $$fail"
+	@for test in $(TEST_EXES); do ./$$test || exit $$?; done
 
 test_%.exe: test_%.c
-	$(CC) $(CFLAGS) $(INCS) $(LDFLAGS) -o $@ $(UNITY) $<
+	$(CC) $(CFLAGS) $(INCS) $(LDFLAGS) -o $@ $(UNITY) $< $(LDLIBS)
 
 clean:
-	-del /f /q $(TEST_EXES) 2>nul
+	$(RM) $(TEST_EXES)

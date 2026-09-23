@@ -3,13 +3,12 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "Controller.h"
+#include "Camera.h"
 #include "nodecfg.h"
 #include "Subroutines.h"
 #include "mc9s12a128.h"
 #include "Interrupts.h"
 #include "mco.h"
-#include "2Wio.h"
 #include "mcohw.h"
 #include "EEProm.h"
 #include "MenuFunctions.h"
@@ -22,6 +21,7 @@ extern struct MenuStack MenuStackc[];
 extern char StackPointer;
 extern char Menu[12][21];
 extern char Gen_Flags;
+extern unsigned int cam_add;
 
 extern UNSIGNED8 gProcImg[]; 
 extern CAN_MSG gTxMsg;
@@ -30,18 +30,21 @@ extern unsigned int TC0_RCVD_Data;
 extern struct menu_var SerialNum;
 extern struct menu_var NullVar;
 extern struct menu_var NullVar2;
-extern struct menu_var MachineSize;
-extern struct menu_var Encoder_Gear;
-extern struct menu_var Large_Gear;
-extern struct menu_var GearRatio;
+extern struct menu_var MicOnOff;
+extern struct menu_var CamTag;
+char EE_CamTag[STR_VALUE_LEN];
 
 extern const int EG_defaults[]; 
 extern const int LG_defaults[]; 
 extern const double GR_defaults[];
 
-char CursorDownFlag;
-char CursorUpFlag;
-char SelectFlag;
+/* These flags deliberately use -1 for the released/armed state. The target
+ * compiler defaults plain char to signed, while the PC build uses
+ * -funsigned-char to match the firmware's byte data. Keep their intent
+ * explicit so menu press/release control works identically on both. */
+signed char CursorDownFlag;
+signed char CursorUpFlag;
+signed char SelectFlag;
 extern char UpdateMenu;
 
 extern unsigned int Timer1;
@@ -51,6 +54,13 @@ extern unsigned int IncSpeedUpTimer;
 extern char fast_inc;
 
 char UpdateArrayVar = 0;
+
+
+char AcceptKeys;
+char InProcess;
+char StoreFlag = 0;
+extern char State;
+
 
 
 int NullFunction ( void )
@@ -559,8 +569,10 @@ void DeSelect ( void )
         MenuStackc[StackPointer].Index[2] = 0;
         MenuStackc[StackPointer].Index[3] = 0;
         Gen_Flags &= ~Gen_Flags_Menu_Active;
-		Send_Menu_Status(0x00);
-        ClearTitler ();
+		ClearTitler ();
+        Timer1 = RTI_One_Sec * 0.05;
+	    while ( Timer1 );
+        Send_Menu_Status(0x00);
 		for (j=1;j<=NR_OF_TPDOS;j++)
 		{
 		    COP_Trig();
@@ -569,8 +581,7 @@ void DeSelect ( void )
 		StoreFlag = 1;
 		//Save_Serial_Num();               //This has to be called before 'Save_Variables', otherwise EEPROM may not be available to read right away
         //Save_Variables();
-		SaveTimer = RTI_One_Sec * 0.5;
-		saveFlag = 1;
+
      }
 	 Variable_flag = 0;
 	 String_Var_ptr = 0;
@@ -912,6 +923,11 @@ int menu_function (void)
     if ( StoreFlag && State == FinishState)
     {
         StoreFlag = 0;
+        //if detects CamTag is different, send msg to controller to update camera list
+        if (strncmp(&CamTag.str_value[0], &EE_CamTag[0], STR_VALUE_LEN - 1) != 0)
+        {
+            Update_Cam_List();        
+        }
         Save_Serial_Num(); //This has to be called before 'Save_Variables', otherwise EEPROM may not be available to read right away
         Save_Variables();
     }
@@ -921,8 +937,31 @@ int menu_function (void)
         TC0_RCVD_Data = gProcImg[OUT_digi_2]<<8 | gProcImg[OUT_digi_1];
     }
 
-    if ( gProcImg[OUT_digi_0] & 0x01 && !(Gen_Flags & Gen_Flags_Menu_Active) )
+    if ( (gProcImg[OUT_digi_6] & 0x08) &&              //command to activate menu
+            (gProcImg[OUT_digi_7] == (cam_add & 0x00FF)) &&         //lsb - old address
+                (gProcImg[OUT_digi_8]<< 8 ==  (cam_add & 0xFF00)) &&
+                 !(Gen_Flags & Gen_Flags_Menu_Active) )
     {
+	    gProcImg[OUT_digi_6] = 0x00;
+        gProcImg[OUT_digi_7] = 0x00;
+        gProcImg[OUT_digi_8] = 0x00;
+        gProcImg[OUT_digi_4] = (cam_add & 0x00FF);
+        gProcImg[OUT_digi_5] = (cam_add & 0xFF00)>>8;
+        PORTA |= CAM_ON;       //turn camera on
+		if (MicOnOff.value == 2)
+		    mic_setEnabled(true);
+
+        //turn off other cameras
+        gTxMsg.ID = 0x421;
+        gTxMsg.LEN = 2; 
+        gTxMsg.BUF[0] = cam_add;
+        gTxMsg.BUF[1] = cam_add >> 8;  
+		if (!MCOHW_PushMessage(&gTxMsg))
+        {
+            // failed to transmit
+            MCOUSER_FatalError(0x8801);
+        } 
+			
         MenuTimer = MenuTime * 2;
       
         gProcImg[OUT_digi_0] &= ~0x01;
@@ -946,13 +985,15 @@ int menu_function (void)
         LoadMenu ( MenuStackc[StackPointer].Index );
         InsertCursor ();
 		UpdateMenu = 1;
+		AcceptKeys = 0;
         CursorDownFlag = 0;
         CursorUpFlag = 0;
-        SelectFlag = 0;
-		DelayTimer = RTI_One_Sec;   //keeps from selecting twice when entering menu
+        SelectFlag = -1;
+		Send_Menu_Status (0x01);
     }
 
-
+	if (AcceptKeys)
+	{
     	if ( ( TC0_RCVD_Data & TeleData_Down ) && CursorDownFlag == 0 )
     		CursorDownFlag = 1;
     	else if ( CursorDownFlag == -1 && !( TC0_RCVD_Data & TeleData_Down ) )
@@ -967,7 +1008,7 @@ int menu_function (void)
     		SelectFlag = 1;
     	else if ( SelectFlag == -1 && !( TC0_RCVD_Data & TeleData_Select ) )
     		SelectFlag = 0;
-	
+	}
 	
 	if ( !MenuTimer )
 	{
@@ -991,11 +1032,6 @@ int menu_function (void)
 				MenuTimer = MenuTime * 2;                          //briefly disable select after menu is selected                 
 				Select();	
 				SelectFlag = -1;		
-				if (clearMsgFlag)
-				{
-				    Display("Proc: ");		//clear top msg		
-					clearMsgFlag = 0;
-				}	
 			}
 			if ( UpdateMenu )
 			{
@@ -1046,25 +1082,11 @@ void Load_Variables ( void )
     char *cptr,*token;
 	struct menu_var *var;
 
-	if (*(char *)EE_Begin == 0xff)   //24" defaults
+	if (*(char *)EE_Begin == 0xff) 
 	{
-	    SetDefaultValues(2);
 	    Save_Variables();
 		return;
-	}
-	else if (*(char *)EE_Begin == 0xfe)   //12" defaults
-	{
-	    SetDefaultValues(1);
-	    Save_Variables();
-		return;
-	}
-	else if (*(char *)EE_Begin == 0xfd)  //8" defaults
-	{
-	    SetDefaultValues(0);
-	    Save_Variables();
-		return;
-	}
-	
+	}	
 		
     if (strlen((char *)EE_Begin) > 128)
 	{
@@ -1110,7 +1132,7 @@ void Load_Variables ( void )
 	{
 	    getvalue(var,0);
 	}
-	
+	strncpy(&EE_CamTag[0], &CamTag.str_value[0], STR_VALUE_LEN - 1); 
 	
 }
 
@@ -1181,31 +1203,13 @@ void Save_Variables ( void )
 	*(tempstr + offset - 1) = NULL;       //end the last string with a null
 	EEWrite (128, tempstr, (int *)(EE_Begin + EE_offset));
 	EEWrite (1, Null_Ptr, (int *)(EE_Begin + EE_offset + 128));    //Put a Null in the first location of the next 128 byte block
+    strncpy(&EE_CamTag[0], &CamTag.str_value[0], STR_VALUE_LEN - 1); 
 }                                                                                        
 
 
-int RestoreDefaults8 ( void )
+int RestoreDefaults ( void )
 {
-    Send_Menu_Status(0x00);
- 	NullVar.str_value[0] = 0xFD;
-    Save_Variables();
-    ResetProc ();
-	return 0;
-}
-
-int RestoreDefaults12 ( void )
-{
-    Send_Menu_Status(0x00);
- 	NullVar.str_value[0] = 0xFE;
-    Save_Variables();
-    ResetProc ();
-	return 0;
-}
-
-
-int RestoreDefaults24 ( void )
-{
-    Send_Menu_Status(0x00);
+    ClearTitler();
  	NullVar.str_value[0] = 0xFF;
     Save_Variables();
     ResetProc ();
@@ -1230,6 +1234,20 @@ void Send_Menu_Status (char stat)
     gTxMsg.LEN = 1;
     gTxMsg.BUF[0] = stat;
 
+    if (!MCOHW_PushMessage(&gTxMsg))
+    {
+        // failed to transmit
+        MCOUSER_FatalError(0x8801);
+    }
+}
+
+void Update_Cam_List(void)
+{
+    gTxMsg.ID = 0x2A1;
+    gTxMsg.LEN = 3;
+    gTxMsg.BUF[0] = 0;
+    gTxMsg.BUF[1] = 0;
+    gTxMsg.BUF[2] = 0xFF;
     if (!MCOHW_PushMessage(&gTxMsg))
     {
         // failed to transmit
@@ -1278,4 +1296,3 @@ void clearMenu (void)
 	 	 sprintf (&Menu[i][0],"                    ");  //20 spaces
 	 }
 }
-

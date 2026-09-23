@@ -18,6 +18,9 @@ VERSION:   2.10, ESA 12-JAN-05
 ***************************************************************************/ 
 
 #include <string.h>
+#ifdef PC_SIDE
+#include <stdio.h>
+#endif
 
 #include "Camera.h"
 #include "Interrupts.h"
@@ -664,6 +667,10 @@ UNSIGNED8 MCO_ProcessStack
   // if message received
   if (MCOHW_PullMessage(&gRxCAN))
   {
+#ifdef PC_SIDE
+    printf("[canopen] dispatch 0x%03X in NMT state 0x%02X\n",
+           (unsigned)gRxCAN.ID, (unsigned)gMCOConfig.heartbeat_msg.BUF[0]);
+#endif
       // is it an NMT master message?
     if (gRxCAN.ID == 0)
     {
@@ -734,6 +741,10 @@ UNSIGNED8 MCO_ProcessStack
         // is this one of our RPDOs?
         if (gRxCAN.ID == gRPDOConfig[i].CANID)
         {
+#ifdef PC_SIDE
+          printf("[canopen] RPDO%u -> process image offset %u\n",
+                 (unsigned)(i + 1), (unsigned)gRPDOConfig[i].offset);
+#endif
           // copy data from RPDO to process image
           memcpy(&(gProcImg[gRPDOConfig[i].offset]),&(gRxCAN.BUF[0]),gRPDOConfig[i].len);
           // exit the loop
@@ -865,4 +876,3 @@ void Reset_Max33011 ( void )
     while ((CANCTL1 & 0x01) && Timer1 );	  // wait for acknowledge
 
 }
-

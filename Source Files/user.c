@@ -23,7 +23,7 @@ VERSION:   2.10, ESA 12-JAN-05
 #include "mco.h"
 #include "mcohw.h"
 #include "mc9s12a128.h"
-#include "subroutines.h"
+#include "Subroutines.h"
 
 // ensure the number of tpdos and rpdos is correct
 #if (NR_OF_RPDOS != 8)
@@ -237,4 +237,3 @@ void MCOUSER_ResetCommunication
   //MCO_InitTPDO(6,0x1ee,0,100,1,IN_digi_18);
   
 }
-

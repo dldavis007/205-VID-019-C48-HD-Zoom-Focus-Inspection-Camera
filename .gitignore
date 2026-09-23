@@ -1,3 +1,17 @@
 *.o
+*.exe
+*.s
+*.lis
+*.dbg
+*.dbg.NoiCtx
+*.lst
+*.mp
+*.s19
+*.bak
+Build/*.o
+pc_side/build/
+pc_side/camera_host
+pc_side/camera_host.exe
 tests/build/
 tests/*.exe
+__pycache__/

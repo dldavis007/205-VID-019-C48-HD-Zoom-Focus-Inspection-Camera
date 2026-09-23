@@ -36,9 +36,13 @@ void middleButtonOff(void);
 
 	#define BufLen 16
 
+	#ifndef PC_SIDE
 	#define _REG_BASE 0
 	#define _P(off) *(unsigned char volatile *)(_REG_BASE + off)
 	#define SCI0CR2 _P(0xCB)
+	#else
+	#define SCI0CR2 sfr_regs[0xCB]
+	#endif
 	#define SCI0CR2_TIE 0x80
 
 	#define AF_INQ 1

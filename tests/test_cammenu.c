@@ -37,8 +37,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../CamMenu.h"
-#include "../CamMenu.c"
+#include "../Source Files/CamMenu.h"
+#include "../Source Files/CamMenu.c"
 #include "stubs/CamMenu.h"
 
 void setUp(void)
